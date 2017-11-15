@@ -1,17 +1,17 @@
 
-**GoCapture** is a reverse proxy that captures the network traffic and shows it in a dashboard
+**Capture** is a reverse proxy that captures the network traffic and shows it in a dashboard
 
 
 ## Building / Running
 
-    git clone https://github.com/ofabricio/gocapture.git
-    cd gocapture
+    git clone https://github.com/ofabricio/capture.git
+    cd capture
     go build
-    ./gocapture -url=https://example.com/api -port=9000 -dashboard=apple -max-captures=16
+    ./capture -url=https://example.com/api -port=9000 -dashboard=apple -max-captures=16
 
 ### Binaries / Executables
 
-For ready-to-use executables (no need to build it yourself) for *Windows* and *Linux*, see [Releases](https://github.com/ofabricio/gocapture/releases) page
+For ready-to-use executables (no need to build it yourself) for *Windows* and *Linux*, see [Releases](https://github.com/ofabricio/capture/releases) page
 
 ### Configurations
 
@@ -29,7 +29,7 @@ For ready-to-use executables (no need to build it yourself) for *Windows* and *L
 If you set your base url as `http://example.com/api`, now `http://localhost:9000` points to that
 address. Hence, calling `http://localhost:9000/users/1` is like calling `http://example.com/api/users/1`
 
-*GoCapture* saves all requests and responses so that you can see them in the dashboard
+*Capture* saves all requests and responses so that you can see them in the dashboard
 
 
 ## Dashboard

@@ -1,16 +1,148 @@
 package main
 
 import (
-	"encoding/base64"
 	"net/http"
 )
-
-const dashboardHTML = "PCFET0NUWVBFIGh0bWw+DQo8aHRtbCBuZy1hcHA9ImFwcCI+DQo8aGVhZD4NCiAgICA8bGluayByZWw9Imljb24iIGhyZWY9ImRhdGE6O2Jhc2U2NCxpVkJPUncwS0dnbz0iPg0KICAgIDxzY3JpcHQgc3JjPSJodHRwczovL2FqYXguZ29vZ2xlYXBpcy5jb20vYWpheC9saWJzL2FuZ3VsYXJqcy8xLjYuNi9hbmd1bGFyLm1pbi5qcyI+PC9zY3JpcHQ+DQogICAgPHNjcmlwdCBzcmM9Imh0dHBzOi8vY2RuanMuY2xvdWRmbGFyZS5jb20vYWpheC9saWJzL3NvY2tldC5pby8yLjAuNC9zb2NrZXQuaW8uanMiPjwvc2NyaXB0Pg0KICAgIDx0aXRsZT5EYXNoYm9hcmQ8L3RpdGxlPg0KICAgIDxzdHlsZT4NCg0KICAgICogeyBwYWRkaW5nOiAwOyBtYXJnaW46IDA7IGJveC1zaXppbmc6IGJvcmRlci1ib3ggfQ0KDQogICAgaHRtbCwgYm9keSwgLmRhc2hib2FyZCB7DQogICAgICAgIGhlaWdodDogMTAwJTsNCiAgICAgICAgZm9udDogMWVtIHZlcmRhbmEsIGFyaWFsLCBoZWx2ZXRpY2EsIHNhbnMtc2VyaWY7DQogICAgfQ0KDQogICAgZGl2IHsgZGlzcGxheTogZmxleDsgcG9zaXRpb246IHJlbGF0aXZlIH0NCg0KICAgIC5kYXNoYm9hcmQgeyBiYWNrZ3JvdW5kOiAjZWNlZmYxIH0NCg0KICAgIC5saXN0LCAucmVxLCAucmVzIHsNCiAgICAgICAgZmxleDogMCAwIDM3JTsNCiAgICAgICAgb3ZlcmZsb3c6IGF1dG87DQogICAgfQ0KDQogICAgLmxpc3QtaW5uZXIsIC5yZXEtaW5uZXIsIC5yZXMtaW5uZXJ7DQogICAgICAgIG1hcmdpbjogMXJlbTsNCiAgICAgICAgb3ZlcmZsb3cteDogaGlkZGVuOw0KICAgICAgICBvdmVyZmxvdy15OiBhdXRvOw0KICAgICAgICBmbGV4OiAxOw0KICAgIH0NCiAgICAucmVxLWlubmVyLCAucmVzLWlubmVyIHsNCiAgICAgICAgYmFja2dyb3VuZDogI2ZlZmVmZTsNCiAgICAgICAgcGFkZGluZzogMXJlbTsNCiAgICB9DQogICAgLnJlcS1pbm5lciB7IG1hcmdpbjogMXJlbSAwIH0NCg0KICAgIC5saXN0IHsgZmxleDogMCAwIDI2JSB9DQogICAgLmxpc3QtaW5uZXIgeyBmbGV4LWRpcmVjdGlvbjogY29sdW1uIH0NCiAgICAubGlzdC1pdGVtIHsNCiAgICAgICAgZmxleC1zaHJpbms6IDA7DQogICAgICAgIHBhZGRpbmc6IDFyZW07DQogICAgICAgIGNvbG9yOiAjNzY3Njc2Ow0KICAgICAgICBiYWNrZ3JvdW5kOiAjZmVmZWZlOw0KICAgICAgICBjdXJzb3I6IHBvaW50ZXI7DQogICAgICAgIG1hcmdpbi1ib3R0b206IDAuNXJlbTsNCiAgICAgICAgYWxpZ24taXRlbXM6IGNlbnRlcjsNCiAgICB9DQogICAgLmxpc3QtaXRlbTpob3ZlciB7IGJhY2tncm91bmQ6ICNlY2VmZjEgfQ0KICAgIC5saXN0LWl0ZW0sIC5yZXEtaW5uZXIsIC5yZXMtaW5uZXIgew0KICAgICAgICBib3gtc2hhZG93OiAwcHggMXB4IDFweCAwcHggcmdiYSgwLDAsMCwwLjI1KTsNCiAgICB9DQogICAgLnNlbGVjdGVkIHsgYmFja2dyb3VuZDogI2ZmNDA4MSAhaW1wb3J0YW50OyBjb2xvcjogI2ZmZiB9DQogICAgLmxpc3QtaXRlbS5zZWxlY3RlZCAubWV0aG9kLA0KICAgIC5saXN0LWl0ZW0uc2VsZWN0ZWQgLnN0YXR1cyB7IGNvbG9yOiAjZmZmICB9DQoNCiAgICAub2ssDQogICAgLkdFVCAgICB7IGNvbG9yOiAjODhkNDNmIH0NCiAgICAuUE9TVCAgIHsgY29sb3I6ICNlZjljMjYgfQ0KICAgIC53YXJuLA0KICAgIC5QVVQgICAgeyBjb2xvcjogIzRjODdkZCB9DQogICAgLlBBVENIICB7IGNvbG9yOiAjNzY3Njc2IH0NCiAgICAuZXJyb3IsDQogICAgLkRFTEVURSB7IGNvbG9yOiAjZTUzZjQyIH0NCg0KICAgIC5tZXRob2QgeyBmb250LXNpemU6IDAuN2VtOyBtYXJnaW4tcmlnaHQ6IDFyZW07IHBhZGRpbmc6IC4yNXJlbSAuNXJlbSB9DQogICAgLnN0YXR1cyB7IGZvbnQtc2l6ZTogMC44ZW07IHBhZGRpbmctbGVmdDogMXJlbSB9DQogICAgLnVybCAgICB7IGZvbnQtc2l6ZTogMC44ZW07IGZsZXg6IDE7IHRleHQtYWxpZ246IHJpZ2h0OyBvdmVyZmxvdzogaGlkZGVuOyB0ZXh0LW92ZXJmbG93OiBlbGxpcHNpczsgd2hpdGUtc3BhY2U6IG5vd3JhcDsgZGlyZWN0aW9uOiBydGwgfQ0KDQogICAgLnJlcS1pbm5lciwgLnJlcy1pbm5lciB7IGZsZXgtZGlyZWN0aW9uOiBjb2x1bW4gIH0NCg0KICAgIC51cmwtYmlnIHsgZmxleC1zaHJpbms6IDA7IGxpbmUtaGVpZ2h0OiAxLjVlbTsgd29yZC1icmVhazogYnJlYWstYWxsOyBwYWRkaW5nLWJvdHRvbTogMXJlbTsgbWFyZ2luLWJvdHRvbTogMXJlbTsgYm9yZGVyLWJvdHRvbTogMXB4IHNvbGlkICNlZWUgfQ0KICAgIC51cmwtYmlnOmVtcHR5IHsgYm9yZGVyOiAwIH0NCg0KICAgIHByZSB7IGZsZXg6IDE7IGNvbG9yOiAjNTU1OyB3b3JkLWJyZWFrOiBub3JtYWw7IHdvcmQtd3JhcDogYnJlYWstd29yZDsgd2hpdGUtc3BhY2U6IHByZS13cmFwOyB9DQoNCiAgICA8L3N0eWxlPg0KPC9oZWFkPg0KPGJvZHk+DQoNCjxkaXYgY2xhc3M9ImRhc2hib2FyZCIgbmctY29udHJvbGxlcj0iY29udHJvbGxlciI+DQoNCiAgICA8ZGl2IGNsYXNzPSJsaXN0Ij4NCiAgICAgICAgPGRpdiBjbGFzcz0ibGlzdC1pbm5lciI+DQogICAgICAgICAgICA8ZGl2IGNsYXNzPSJsaXN0LWl0ZW0iIG5nLXJlcGVhdD0iaXRlbSBpbiBpdGVtcyIgbmctY2xpY2s9InNob3coaXRlbSkiDQogICAgICAgICAgICAgICAgIG5nLWNsYXNzPSJ7c2VsZWN0ZWQ6IHNlbGVjdGVkID09IGl0ZW19Ij4NCiAgICAgICAgICAgICAgICA8c3BhbiBjbGFzcz0ibWV0aG9kIiBuZy1jbGFzcz0iaXRlbS5tZXRob2QiPnt7aXRlbS5tZXRob2R9fTwvc3Bhbj4NCiAgICAgICAgICAgICAgICA8c3BhbiBjbGFzcz0idXJsIj4mbHJtO3t7aXRlbS51cmx9fSZscm07PC9zcGFuPg0KICAgICAgICAgICAgICAgIDxzcGFuIGNsYXNzPSJzdGF0dXMiIG5nLWNsYXNzPSJzdGF0dXNDb2xvcihpdGVtKSI+e3tpdGVtLnJlc3BvbnNlLnN0YXR1c319PC9zcGFuPg0KICAgICAgICAgICAgPC9kaXY+DQogICAgICAgIDwvZGl2Pg0KICAgIDwvZGl2Pg0KDQogICAgPGRpdiBjbGFzcz0icmVxIj4NCiAgICAgICAgPGRpdiBjbGFzcz0icmVxLWlubmVyIj4NCiAgICAgICAgICAgIDxkaXYgY2xhc3M9InVybC1iaWciPnt7dXJsfX08L2Rpdj4NCiAgICAgICAgICAgIDxwcmU+e3tyZXF1ZXN0fX08L3ByZT4NCiAgICAgICAgPC9kaXY+DQogICAgPC9kaXY+DQoNCiAgICA8ZGl2IGNsYXNzPSJyZXMiPg0KICAgICAgICA8ZGl2IGNsYXNzPSJyZXMtaW5uZXIiPg0KICAgICAgICAgICAgPHByZT57e3Jlc3BvbnNlfX08L3ByZT4NCiAgICAgICAgPC9kaXY+DQogICAgPC9kaXY+DQoNCjwvZGl2Pg0KDQo8c2NyaXB0IHR5cGU9InRleHQvamF2YXNjcmlwdCI+DQogICAgYW5ndWxhci5tb2R1bGUoJ2FwcCcsIFtdKQ0KICAgICAgICAuY29udHJvbGxlcignY29udHJvbGxlcicsIGZ1bmN0aW9uKCRzY29wZSkgew0KDQogICAgICAgICAgICAkc2NvcGUuc2hvdyA9IGl0ZW0gPT4gew0KICAgICAgICAgICAgICAgIGxldCBpbmRlbnQgPSBvYmogPT4gSlNPTi5zdHJpbmdpZnkob2JqLCBudWxsLCAnICAgICcpOw0KICAgICAgICAgICAgICAgICRzY29wZS5yZXF1ZXN0ICA9IGluZGVudChpdGVtLnJlcXVlc3QpOw0KICAgICAgICAgICAgICAgICRzY29wZS5yZXNwb25zZSA9IGluZGVudChpdGVtLnJlc3BvbnNlKTsNCiAgICAgICAgICAgICAgICAkc2NvcGUudXJsID0gaXRlbS51cmw7DQogICAgICAgICAgICAgICAgJHNjb3BlLnNlbGVjdGVkID0gaXRlbTsNCiAgICAgICAgICAgIH0NCiAgICAgICAgICAgICRzY29wZS5zdGF0dXNDb2xvciA9IGl0ZW0gPT4gew0KICAgICAgICAgICAgICAgIGxldCBzdGF0dXMgPSAoaXRlbS5yZXNwb25zZS5zdGF0dXMgKyAnJylbMF0gLSAyOw0KICAgICAgICAgICAgICAgIHJldHVybiBbJ29rJywgJ3dhcm4nLCAnZXJyb3InLCAnZXJyb3InXVtzdGF0dXNdIHx8ICcnOw0KICAgICAgICAgICAgfQ0KDQogICAgICAgICAgICBsZXQgc29ja2V0ID0gaW8oKTsNCiAgICAgICAgICAgIHNvY2tldC5vbignY29ubmVjdCcsICgpID0+IHsNCiAgICAgICAgICAgICAgICBzb2NrZXQub24oJ2NhcHR1cmVzJywgY2FwdHVyZXMgPT4gew0KICAgICAgICAgICAgICAgICAgICAkc2NvcGUuaXRlbXMgPSBjYXB0dXJlczsNCiAgICAgICAgICAgICAgICAgICAgJHNjb3BlLiRhcHBseSgpOw0KICAgICAgICAgICAgICAgIH0pOw0KICAgICAgICAgICAgfSk7DQogICAgICAgIH0pOw0KPC9zY3JpcHQ+DQo8L2JvZHk+DQo8L2h0bWw+"
 
 func getDashboardHandler() http.Handler {
 	return http.HandlerFunc(func(response http.ResponseWriter, request *http.Request) {
 		response.Header().Add("Content-Type", "text/html")
-		htmlBytes, _ := base64.StdEncoding.DecodeString(dashboardHTML)
-		response.Write(htmlBytes)
+		response.Write([]byte(dashboardHTML))
 	})
 }
+
+const dashboardHTML = `
+<!DOCTYPE html>
+<html ng-app="app">
+<head>
+    <link rel="icon" href="data:;base64,iVBORw0KGgo=">
+    <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.6.6/angular.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.0.4/socket.io.js"></script>
+    <title>Dashboard</title>
+    <style>
+
+    * { padding: 0; margin: 0; box-sizing: border-box }
+
+    html, body, .dashboard {
+        height: 100%;
+        font: 1em verdana, arial, helvetica, sans-serif;
+    }
+
+    div { display: flex; position: relative }
+
+    .dashboard { background: #eceff1 }
+
+    .list, .req, .res {
+        flex: 0 0 37%;
+        overflow: auto;
+    }
+
+    .list-inner, .req-inner, .res-inner{
+        margin: 1rem;
+        overflow-x: hidden;
+        overflow-y: auto;
+        flex: 1;
+    }
+    .req-inner, .res-inner {
+        background: #fefefe;
+        padding: 1rem;
+    }
+    .req-inner { margin: 1rem 0 }
+
+    .list { flex: 0 0 26% }
+    .list-inner { flex-direction: column }
+    .list-item {
+        flex-shrink: 0;
+        padding: 1rem;
+        color: #767676;
+        background: #fefefe;
+        cursor: pointer;
+        margin-bottom: 0.5rem;
+        align-items: center;
+    }
+    .list-item:hover { background: #eceff1 }
+    .list-item, .req-inner, .res-inner {
+        box-shadow: 0px 1px 1px 0px rgba(0,0,0,0.25);
+    }
+    .selected { background: #ff4081 !important; color: #fff }
+    .list-item.selected .method,
+    .list-item.selected .status { color: #fff  }
+
+    .ok,
+    .GET    { color: #88d43f }
+    .POST   { color: #ef9c26 }
+    .warn,
+    .PUT    { color: #4c87dd }
+    .PATCH  { color: #767676 }
+    .error,
+    .DELETE { color: #e53f42 }
+
+    .method { font-size: 0.7em; margin-right: 1rem; padding: .25rem .5rem }
+    .status { font-size: 0.8em; padding-left: 1rem }
+    .url    { font-size: 0.8em; flex: 1; text-align: right; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; direction: rtl }
+
+    .req-inner, .res-inner { flex-direction: column  }
+
+    .url-big { flex-shrink: 0; line-height: 1.5em; word-break: break-all; padding-bottom: 1rem; margin-bottom: 1rem; border-bottom: 1px solid #eee }
+    .url-big:empty { border: 0 }
+
+    pre { flex: 1; color: #555; word-break: normal; word-wrap: break-word; white-space: pre-wrap; }
+
+    </style>
+</head>
+<body>
+
+<div class="dashboard" ng-controller="controller">
+
+    <div class="list">
+        <div class="list-inner">
+            <div class="list-item" ng-repeat="item in items" ng-click="show(item)"
+                 ng-class="{selected: selected == item}">
+                <span class="method" ng-class="item.method">{{item.method}}</span>
+                <span class="url">&lrm;{{item.url}}&lrm;</span>
+                <span class="status" ng-class="statusColor(item)">{{item.status}}</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="req">
+        <div class="req-inner">
+            <div class="url-big">{{url}}</div>
+            <pre>{{request}}</pre>
+        </div>
+    </div>
+
+    <div class="res">
+        <div class="res-inner">
+            <pre>{{response}}</pre>
+        </div>
+    </div>
+
+</div>
+
+<script type="text/javascript">
+    angular.module('app', [])
+        .controller('controller', function($scope) {
+
+            $scope.show = item => {
+                $scope.request  = item.request;
+                $scope.response = item.response;
+                $scope.url = item.url;
+                $scope.selected = item;
+            }
+            $scope.statusColor = item => {
+                let status = (item.response.status + '')[0] - 2;
+                return ['ok', 'warn', 'error', 'error'][status] || '';
+            }
+
+            let socket = io();
+            socket.on('connect', () => {
+                socket.on('captures', captures => {
+                    $scope.items = captures;
+                    $scope.$apply();
+                });
+            });
+        });
+</script>
+</body>
+</html>`
