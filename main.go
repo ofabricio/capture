@@ -41,7 +41,7 @@ func getProxyHandler(handler http.Handler) http.Handler {
 func (t Transport) RoundTrip(req *http.Request) (*http.Response, error) {
 	reqDump, _ := httputil.DumpRequest(req, true)
 
-	res, e := t.RoundTripper.RoundTrip(req)
+	res, err := t.RoundTripper.RoundTrip(req)
 
 	resDump, _ := DumpResponse(res)
 
@@ -55,7 +55,7 @@ func (t Transport) RoundTrip(req *http.Request) (*http.Response, error) {
 
 	save(capture)
 
-	return res, e
+	return res, err
 }
 
 func DumpResponse(res *http.Response) ([]byte, error) {
@@ -64,9 +64,9 @@ func DumpResponse(res *http.Response) ([]byte, error) {
 	if res.Header.Get("Content-Encoding") == "gzip" {
 		res.Body, _ = gzip.NewReader(res.Body)
 	}
-	resDump, e := httputil.DumpResponse(res, true)
+	resDump, err := httputil.DumpResponse(res, true)
 	res.Body = ioutil.NopCloser(&originalBody)
-	return resDump, e
+	return resDump, err
 }
 
 func save(capture Capture) {

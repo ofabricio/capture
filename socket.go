@@ -31,9 +31,9 @@ func getSocketHandler() http.Handler {
 	return server
 }
 
-func emit(data interface{}) {
+func emit(captures []Capture) {
 	if socket == nil {
 		return
 	}
-	socket.Emit("captures", data)
+	socket.Emit("captures", captures)
 }
