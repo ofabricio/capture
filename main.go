@@ -7,7 +7,6 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/http/httputil"
-	"net/url"
 )
 
 type Capture map[string]interface{}
@@ -20,17 +19,16 @@ type Transport struct {
 }
 
 func main() {
-	args := parseArgs()
-	maxCaptures = args.maxCaptures
+	targetURL, proxyPort, dashboard, maxCaptrs := parseFlags()
+	maxCaptures = maxCaptrs
 
-	URL, _ := url.Parse(args.url)
-	proxy := httputil.NewSingleHostReverseProxy(URL)
+	proxy := httputil.NewSingleHostReverseProxy(targetURL)
 	proxy.Transport = Transport{http.DefaultTransport}
 
 	http.Handle("/", getProxyHandler(proxy))
 	http.Handle("/socket.io/", getSocketHandler())
-	http.Handle("/"+args.dashboard+"/", getDashboardHandler())
-	http.ListenAndServe(":"+args.port, nil)
+	http.Handle("/"+dashboard+"/", getDashboardHandler())
+	http.ListenAndServe(":"+proxyPort, nil)
 }
 
 func getProxyHandler(handler http.Handler) http.Handler {

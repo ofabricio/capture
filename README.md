@@ -18,9 +18,9 @@ For ready-to-use executables (no need to build it yourself) for *Windows* and *L
 | param           | description |
 |-----------------|-------------|
 | `-url`          | **Required.** Set the base url you want to capture |
-| `-port`         | Set the port you want to capture. Default: *9000* |
+| `-port`         | Set the proxy port. Default: *9000* |
 | `-dashboard`    | Set the dashboard name. Default: *dashboard* |
-| `-max-captures` | Set the max number of captures. Default: *16* |
+| `-max-captures` | Set the max number of captures to show in the dashboard. Default: *16* |
 | `-h`            | Show help |
 
 
