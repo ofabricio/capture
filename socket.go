@@ -14,15 +14,8 @@ func getSocketHandler() http.Handler {
 	if err != nil {
 		log.Fatal(err)
 	}
-
 	server.On("connection", func(so socketio.Socket) {
 		socket = so
-		log.Println("dashboard is connected")
-
-		so.On("disconnection", func() {
-			log.Println("dashboard is disconnected")
-		})
-
 		emit(captures)
 	})
 	server.On("error", func(so socketio.Socket, err error) {
