@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"compress/gzip"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -28,6 +29,9 @@ func main() {
 	http.Handle("/", getProxyHandler(proxy))
 	http.Handle("/socket.io/", getSocketHandler())
 	http.Handle("/"+dashboard+"/", getDashboardHandler())
+
+	fmt.Printf("\nListening on http://localhost:%s\n\n", proxyPort)
+
 	http.ListenAndServe(":"+proxyPort, nil)
 }
 
