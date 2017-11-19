@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"compress/gzip"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -43,11 +44,20 @@ func getProxyHandler(handler http.Handler) http.Handler {
 }
 
 func (t Transport) RoundTrip(req *http.Request) (*http.Response, error) {
-	reqDump, _ := httputil.DumpRequest(req, true)
+	reqDump, err := httputil.DumpRequest(req, true)
+	if err != nil {
+		return nil, err
+	}
 
 	res, err := t.RoundTripper.RoundTrip(req)
+	if err != nil {
+		return nil, errors.New(err.Error() + ": " + req.URL.String())
+	}
 
-	resDump, _ := DumpResponse(res)
+	resDump, err := DumpResponse(res)
+	if err != nil {
+		return nil, err
+	}
 
 	capture := Capture{
 		"url":      req.URL.Path,
@@ -59,7 +69,7 @@ func (t Transport) RoundTrip(req *http.Request) (*http.Response, error) {
 
 	save(capture)
 
-	return res, err
+	return res, nil
 }
 
 func DumpResponse(res *http.Response) ([]byte, error) {
