@@ -7,22 +7,23 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"net/http/httputil"
+
+	"github.com/googollee/go-socket.io"
 )
 
-type Capture map[string]interface{}
-
-var captures []Capture
-var maxCaptures int
+var captures Captures
+var socket socketio.Socket
 
 type Transport struct {
 	http.RoundTripper
 }
 
 func main() {
-	targetURL, proxyPort, dashboard, maxCaptrs := parseFlags()
-	maxCaptures = maxCaptrs
+	targetURL, proxyPort, dashboard, maxCaptures := parseFlags()
+	captures.max = maxCaptures
 
 	proxy := httputil.NewSingleHostReverseProxy(targetURL)
 	proxy.Transport = Transport{http.DefaultTransport}
@@ -43,6 +44,21 @@ func getProxyHandler(handler http.Handler) http.Handler {
 	})
 }
 
+func getSocketHandler() http.Handler {
+	server, err := socketio.NewServer(nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+	server.On("connection", func(so socketio.Socket) {
+		socket = so
+		emit()
+	})
+	server.On("error", func(so socketio.Socket, err error) {
+		log.Println("socket error:", err)
+	})
+	return server
+}
+
 func (t Transport) RoundTrip(req *http.Request) (*http.Response, error) {
 	reqDump, err := httputil.DumpRequest(req, true)
 	if err != nil {
@@ -59,15 +75,13 @@ func (t Transport) RoundTrip(req *http.Request) (*http.Response, error) {
 		return nil, err
 	}
 
-	capture := Capture{
-		"url":      req.URL.Path,
-		"method":   req.Method,
-		"status":   res.StatusCode,
-		"request":  string(reqDump),
-		"response": string(resDump),
+	capture := Capture{req.URL.Path, req.Method, res.StatusCode,
+		string(reqDump),
+		string(resDump),
 	}
 
-	save(capture)
+	captures.Add(capture)
+	emit()
 
 	return res, nil
 }
@@ -83,10 +97,9 @@ func DumpResponse(res *http.Response) ([]byte, error) {
 	return resDump, err
 }
 
-func save(capture Capture) {
-	captures = append([]Capture{capture}, captures...)
-	if len(captures) > maxCaptures {
-		captures = captures[:len(captures)-1]
+func emit() {
+	if socket == nil {
+		return
 	}
-	emit(captures)
+	socket.Emit("captures", captures.items)
 }
