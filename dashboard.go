@@ -131,7 +131,7 @@ const dashboardHTML = `
                 $scope.selected = item;
             }
             $scope.statusColor = item => {
-                let status = (item.response.status + '')[0] - 2;
+                let status = (item.status + '')[0] - 2;
                 return ['ok', 'warn', 'error', 'error'][status] || '';
             }
 
