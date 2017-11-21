@@ -32,7 +32,8 @@ func main() {
 	http.Handle("/socket.io/", getSocketHandler())
 	http.Handle("/"+dashboard+"/", getDashboardHandler())
 
-	fmt.Printf("\nListening on http://localhost:%s\n\n", proxyPort)
+	fmt.Printf("\nListening on http://localhost:%s", proxyPort)
+	fmt.Printf("\n             http://localhost:%s/%s\n\n", proxyPort, dashboard)
 
 	http.ListenAndServe(":"+proxyPort, nil)
 }
