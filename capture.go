@@ -1,21 +1,43 @@
 package main
 
+import "strconv"
+
 type Capture struct {
-	Url      string `json:"url"`
+	Path     string `json:"path"`
 	Method   string `json:"method"`
 	Status   int    `json:"status"`
 	Request  string `json:"request"`
 	Response string `json:"response"`
 }
 
-type Captures struct {
-	items []Capture
-	max   int
+type CaptureRef struct {
+	ID      int    `json:"id"`
+	Path    string `json:"path"`
+	Method  string `json:"method"`
+	Status  int    `json:"status"`
+	ItemUrl string `json:"itemUrl"`
 }
 
-func (c *Captures) Add(capture Capture) {
-	c.items = append([]Capture{capture}, c.items...)
-	if len(c.items) > c.max {
-		c.items = c.items[:len(c.items)-1]
+type Captures []Capture
+
+func (items *Captures) Add(capture Capture) {
+	*items = append(*items, capture)
+	size := len(*items)
+	if size > args.maxCaptures {
+		*items = (*items)[1:]
 	}
+}
+
+func (items *Captures) GetRefs(itemBaseUrl string) []CaptureRef {
+	refs := make([]CaptureRef, len(*items))
+	for i, item := range *items {
+		refs[i] = CaptureRef{
+			ID:      i,
+			Path:    item.Path,
+			Method:  item.Method,
+			Status:  item.Status,
+			ItemUrl: itemBaseUrl + strconv.Itoa(i),
+		}
+	}
+	return refs
 }

@@ -21,6 +21,28 @@ const dashboardHTML = `
     <title>Dashboard</title>
     <style>
 
+    :root {
+        --b00: #fafafa;
+        --b01: #f0f0f1;
+        --b02: #e5e5e6;
+        --b03: #a0a1a7;
+        --b04: #696c77;
+        --b05: #383a42;
+        --b06: #202227;
+        --b07: #090a0b;
+        --b08: #ca1243;
+        --b09: #d75f00;
+        --b0A: #c18401;
+        --b0B: #50a14f;
+        --b0C: #0184bc;
+        --b0D: #4078f2;
+        --b0E: #a626a4;
+        --b0F: #986801;
+
+        --e0C: #82aaff;
+        --e0E: #c792ea;
+    }
+
     * { padding: 0; margin: 0; box-sizing: border-box }
 
     html, body, .dashboard {
@@ -30,7 +52,7 @@ const dashboardHTML = `
 
     div { display: flex; position: relative }
 
-    .dashboard { background: #eceff1 }
+    .dashboard { background: var(--b06) }
 
     .list, .req, .res {
         flex: 0 0 37%;
@@ -44,7 +66,7 @@ const dashboardHTML = `
         flex: 1;
     }
     .req-inner, .res-inner {
-        background: #fefefe;
+        background: var(--b05);
         padding: 1rem;
     }
     .req-inner { margin: 1rem 0 }
@@ -54,40 +76,48 @@ const dashboardHTML = `
     .list-item {
         flex-shrink: 0;
         padding: 1rem;
-        color: #767676;
-        background: #fefefe;
+        color:  var(--e0C);
+        background: var(--b07);
         cursor: pointer;
         margin-bottom: 0.5rem;
         align-items: center;
     }
-    .list-item:hover { background: #eceff1 }
+    .list-item:hover { background: var(--b07) }
     .list-item, .req-inner, .res-inner {
-        box-shadow: 0px 1px 1px 0px rgba(0,0,0,0.25);
+        box-shadow: 0px 2px 5px 0px rgba(0, 0, 0, 0.1);
     }
-    .selected { background: #ff4081 !important; color: #fff }
-    .list-item.selected .method,
-    .list-item.selected .status { color: #fff  }
+    .list-item.selected { outline: 1px solid var(--b0D); outline-offset: -1px }
 
     .ok,
-    .GET    { color: #88d43f }
-    .POST   { color: #ef9c26 }
+    .GET    { color: var(--b0B) }
+    .POST   { color: var(--b09) }
     .warn,
-    .PUT    { color: #4c87dd }
-    .PATCH  { color: #767676 }
+    .PUT    { color: var(--b0A) }
+    .PATCH  { color: var(--b04) }
     .error,
-    .DELETE { color: #e53f42 }
+    .DELETE { color: var(--b08) }
 
     .method { font-size: 0.7em; margin-right: 1rem; padding: .25rem .5rem }
     .status { font-size: 0.8em; padding-left: 1rem }
-    .url    { font-size: 0.8em; flex: 1; text-align: right; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; direction: rtl }
+    .path   { font-size: 0.8em; flex: 1; text-align: right; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; direction: rtl }
 
     .req-inner, .res-inner { flex-direction: column  }
 
-    .url-big { flex-shrink: 0; line-height: 1.5em; word-break: break-all; padding-bottom: 1rem; margin-bottom: 1rem; border-bottom: 1px solid #eee }
-    .url-big:empty { border: 0 }
-
-    pre { flex: 1; color: #555; word-break: normal; word-wrap: break-word; white-space: pre-wrap; }
-
+    pre { flex: 1; color: var(--b03); word-break: normal; word-wrap: break-word; white-space: pre-wrap; z-index: 1 }
+    .req-inner:before, .res-inner:before {
+        bottom: 1rem;
+        font-size: 4em;
+        color: var(--b06);
+        position: fixed;
+        font-weight: bolder;
+        font-family: impact;
+    }
+    .req-inner:before {
+        content: "REQUEST";
+    }
+    .res-inner:before {
+        content: "RESPONSE";
+    }
     </style>
 </head>
 <body>
@@ -96,10 +126,10 @@ const dashboardHTML = `
 
     <div class="list">
         <div class="list-inner">
-            <div class="list-item" ng-repeat="item in items" ng-click="show(item)"
-                 ng-class="{selected: selected == item}">
+            <div class="list-item" ng-repeat="item in items | orderBy: '-id' track by item.id" ng-click="show(item)"
+                 ng-class="{selected: isItemSelected(item)}">
                 <span class="method" ng-class="item.method">{{item.method}}</span>
-                <span class="url">&lrm;{{item.url}}&lrm;</span>
+                <span class="path">&lrm;{{item.path}}&lrm;</span>
                 <span class="status" ng-class="statusColor(item)">{{item.status}}</span>
             </div>
         </div>
@@ -107,7 +137,6 @@ const dashboardHTML = `
 
     <div class="req">
         <div class="req-inner">
-            <div class="url-big">{{url}}</div>
             <pre>{{request}}</pre>
         </div>
     </div>
@@ -122,17 +151,24 @@ const dashboardHTML = `
 
 <script type="text/javascript">
     angular.module('app', [])
-        .controller('controller', function($scope) {
+        .controller('controller', function($scope, $http) {
 
             $scope.show = item => {
-                $scope.request  = item.request;
-                $scope.response = item.response;
-                $scope.url = item.url;
-                $scope.selected = item;
+                $scope.path = item.path;
+                $scope.selectedId = item.id;
+                $http.get(item.itemUrl).then(r => {
+                    $scope.request  = r.data.request;
+                    $scope.response = r.data.response;
+                });
             }
+
             $scope.statusColor = item => {
                 let status = (item.status + '')[0] - 2;
                 return ['ok', 'warn', 'error', 'error'][status] || '';
+            }
+
+            $scope.isItemSelected = item => {
+                return $scope.selectedId == item.id;
             }
 
             let socket = io();
