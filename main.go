@@ -84,14 +84,15 @@ func getSocketHandler() http.Handler {
 }
 
 func (t Transport) RoundTrip(req *http.Request) (*http.Response, error) {
-	res, err := t.RoundTripper.RoundTrip(req)
-	if err != nil {
-		return nil, errors.New("uh oh | " + err.Error() + " | " + req.URL.String())
-	}
 
 	reqDump, err := DumpRequest(req)
 	if err != nil {
 		return nil, err
+	}
+
+	res, err := t.RoundTripper.RoundTrip(req)
+	if err != nil {
+		return nil, errors.New("uh oh | " + err.Error() + " | " + req.URL.String())
 	}
 
 	resDump, err := DumpResponse(res)
@@ -119,10 +120,11 @@ func DumpRequest(req *http.Request) ([]byte, error) {
 
 func DumpResponse(res *http.Response) ([]byte, error) {
 	var originalBody bytes.Buffer
-	res.Body = ioutil.NopCloser(io.TeeReader(res.Body, &originalBody))
+	reader := io.TeeReader(res.Body, &originalBody)
 	if res.Header.Get("Content-Encoding") == "gzip" {
-		res.Body, _ = gzip.NewReader(res.Body)
+		reader, _ = gzip.NewReader(reader)
 	}
+	res.Body = ioutil.NopCloser(reader)
 	resDump, err := httputil.DumpResponse(res, true)
 	res.Body = ioutil.NopCloser(&originalBody)
 	return resDump, err
@@ -132,5 +134,5 @@ func emit() {
 	if socket == nil {
 		return
 	}
-	socket.Emit("captures", captures.GetRefs(host+dashboardItemsPath))
+	socket.Emit("captures", captures.ToReferences(host+dashboardItemsPath))
 }

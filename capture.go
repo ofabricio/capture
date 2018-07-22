@@ -28,7 +28,7 @@ func (items *Captures) Add(capture Capture) {
 	}
 }
 
-func (items *Captures) GetRefs(itemBaseUrl string) []CaptureRef {
+func (items *Captures) ToReferences(itemBaseUrl string) []CaptureRef {
 	refs := make([]CaptureRef, len(*items))
 	for i, item := range *items {
 		refs[i] = CaptureRef{

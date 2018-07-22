@@ -39,7 +39,7 @@ const dashboardHTML = `
         --b0E: #a626a4;
         --b0F: #986801;
 
-        --e0C: #82aaff;
+        --e0D: #82aaff;
         --e0E: #c792ea;
     }
 
@@ -76,7 +76,7 @@ const dashboardHTML = `
     .list-item {
         flex-shrink: 0;
         padding: 1rem;
-        color:  var(--e0C);
+        color:  var(--e0D);
         background: var(--b07);
         cursor: pointer;
         margin-bottom: 0.5rem;
@@ -118,6 +118,15 @@ const dashboardHTML = `
     .res-inner:before {
         content: "RESPONSE";
     }
+
+    .bt-pretty {
+        position: absolute;
+        right: .5rem;
+        top: 0.25rem;
+        font-size: .75em;
+        color: var(--e0E);
+        text-decoration: none;
+    }
     </style>
 </head>
 <body>
@@ -137,12 +146,14 @@ const dashboardHTML = `
 
     <div class="req">
         <div class="req-inner">
-            <pre>{{request}}</pre>
+        <a ng-show="canPrettifyRequestBody" ng-click="prettifyBody('request')" href="#" class="bt-pretty">prettify</a>
+        <pre>{{request}}</pre>
         </div>
     </div>
 
     <div class="res">
         <div class="res-inner">
+            <a ng-show="canPrettifyResponseBody" ng-click="prettifyBody('response')" href="#" class="bt-pretty">prettify</a>
             <pre>{{response}}</pre>
         </div>
     </div>
@@ -159,6 +170,8 @@ const dashboardHTML = `
                 $http.get(item.itemUrl).then(r => {
                     $scope.request  = r.data.request;
                     $scope.response = r.data.response;
+                    $scope.canPrettifyRequestBody = r.data.request.indexOf('Content-Type: application/json') != -1;
+                    $scope.canPrettifyResponseBody = r.data.response.indexOf('Content-Type: application/json') != -1;
                 });
             }
 
@@ -169,6 +182,15 @@ const dashboardHTML = `
 
             $scope.isItemSelected = item => {
                 return $scope.selectedId == item.id;
+            }
+
+            $scope.prettifyBody = key => {
+                let regex = /.*\n([\{\[].*[\}\]]).*/gs;
+                let data = $scope[key];
+                let match = regex.exec(data);
+                let body = match[1];
+                let prettyBody = JSON.stringify(JSON.parse(body), null, '    ');
+                $scope[key] = data.replace(body, prettyBody);
             }
 
             let socket = io();
