@@ -18,6 +18,7 @@ const dashboardHTML = `
     <link rel="icon" href="data:;base64,iVBORw0KGgo=">
     <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.6.6/angular.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.0.4/socket.io.js"></script>
+    <link href="https://fonts.googleapis.com/css?family=Roboto:300,400,900" rel="stylesheet">
     <title>Dashboard</title>
     <style>
 
@@ -47,7 +48,8 @@ const dashboardHTML = `
 
     html, body, .dashboard {
         height: 100%;
-        font: 1em verdana, arial, helvetica, sans-serif;
+        font: 1em roboto, verdana, arial, helvetica, sans-serif;
+        font-weight: 400;
     }
 
     div { display: flex; position: relative }
@@ -75,18 +77,23 @@ const dashboardHTML = `
     .list-inner { flex-direction: column }
     .list-item {
         flex-shrink: 0;
+        font-weight: 300;
+        height: 52px;
         padding: 1rem;
-        color:  var(--e0D);
+        color: var(--e0D);
         background: var(--b07);
         cursor: pointer;
-        margin-bottom: 0.5rem;
+        margin-bottom: .5rem;
         align-items: center;
     }
-    .list-item:hover { background: var(--b07) }
+    .list-item:hover { }
     .list-item, .req-inner, .res-inner {
         box-shadow: 0px 2px 5px 0px rgba(0, 0, 0, 0.1);
     }
-    .list-item.selected { outline: 1px solid var(--b0D); outline-offset: -1px }
+    .list-item.selected {
+        border-right: 1rem solid var(--b0D);
+        transition: border .1s linear;
+    }
 
     .ok,
     .GET    { color: var(--b0B) }
@@ -109,8 +116,7 @@ const dashboardHTML = `
         font-size: 4em;
         color: var(--b06);
         position: fixed;
-        font-weight: bolder;
-        font-family: impact;
+        font-weight: 900;
     }
     .req-inner:before {
         content: "REQUEST";
