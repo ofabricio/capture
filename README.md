@@ -2,16 +2,15 @@
 **Capture** is a reverse proxy that captures the network traffic and shows it in a dashboard
 
 
-## Building / Running
+## Binaries / Executables
 
-    git clone https://github.com/ofabricio/capture.git
-    cd capture
-    go build
-    ./capture -url=https://example.com/api -port=9000 -dashboard=apple -max-captures=16
+For ready-to-use executables for *Windows*, *Linux* and *Mac*, see [Releases](https://github.com/ofabricio/capture/releases) page
 
-### Binaries / Executables
 
-For ready-to-use executables (no need to build it yourself) for *Windows* and *Linux*, see [Releases](https://github.com/ofabricio/capture/releases) page
+## Running
+
+    ./capture -url=https://example.com/
+
 
 ### Configurations
 
@@ -23,6 +22,22 @@ For ready-to-use executables (no need to build it yourself) for *Windows* and *L
 | `-max-captures` | Set the max number of captures to show in the dashboard. Default: *16* |
 | `-h`            | Show help |
 
+
+## Building
+
+Manually:
+
+    git clone https://github.com/ofabricio/capture.git
+    cd capture
+    go get -d ./...
+    go build -o capture .
+
+Via docker:
+
+    git clone https://github.com/ofabricio/capture.git
+    cd capture
+    docker build -t capture .
+    docker run --rm -v "${PWD}:/src" -e "OS=linux" capture
 
 ## Using
 
@@ -38,6 +53,7 @@ To access the dashboard go to `http://localhost:9000/dashboard`
 
 The path `/dashboard/**` is reserved, that means if your api has a path like that it will be ignored
 in favor of the dashboard. However, you can change the dashboard's name with `-dashboard`
+
 
 ##### Preview
 
