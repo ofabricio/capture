@@ -57,4 +57,4 @@ in favor of the dashboard. However, you can change the dashboard's name with `-d
 
 ##### Preview
 
-![dashboard](https://i.imgur.com/13nzb48.png)
+![dashboard](https://i.imgur.com/mO8PoNY.png)
