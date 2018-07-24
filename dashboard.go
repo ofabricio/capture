@@ -18,55 +18,59 @@ const dashboardHTML = `
     <link rel="icon" href="data:;base64,iVBORw0KGgo=">
     <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.6.6/angular.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.0.4/socket.io.js"></script>
-    <link href="https://fonts.googleapis.com/css?family=Open+Sans:400,800" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css?family=Inconsolata:400,700" rel="stylesheet">
     <title>Dashboard</title>
     <style>
 
     :root {
-        --b00: #fafafa;
-        --b01: #f0f0f1;
-        --b02: #e5e5e6;
-        --b03: #a0a1a7;
-        --b04: #696c77;
-        --b05: #383a42;
-        --b06: #202227;
-        --b07: #090a0b;
-        --b08: #ca1243;
-        --b09: #d75f00;
-        --b0A: #c18401;
-        --b0B: #50a14f;
-        --b0C: #0184bc;
-        --b0D: #82aaff;
-        --b0E: #c792ea;
-        --b0F: #986801;
+        --bg: #282c34;
+        --list-item-bg: #2c313a;
+        --list-item-fg: #abb2bf;
+        --list-item-sel-fg: #61afef;
+        --list-item-sel-bg: #61afef;
+        --req-res-bg: #2c313a;
+        --req-res-fg: #abb2bf;
+        --links: #55b5c1;
+        --method-get: #98c379;
+        --method-post: #c678dd;
+        --method-put: #d19a66;
+        --method-patch: #a7afbc;
+        --method-delete: #e06c75;
+        --status-ok: #98c379;
+        --status-warn: #d19a66;
+        --status-error: #e06c75;
     }
 
     * { padding: 0; margin: 0; box-sizing: border-box }
 
     html, body, .dashboard {
         height: 100%;
-        font: 1em 'Open Sans', verdana, sans-serif;
+        font-family: 'Inconsolata', monospace;
+        font-size: 1em;
         font-weight: 400;
     }
 
     div { display: flex; position: relative }
 
-    .dashboard { background: var(--b06) }
+    .dashboard { background: var(--bg) }
 
     .list, .req, .res {
         flex: 0 0 37%;
         overflow: auto;
     }
 
-    .list-inner, .req-inner, .res-inner{
+    .list-inner, .req-inner, .res-inner {
         margin: 1rem;
         overflow-x: hidden;
         overflow-y: auto;
         flex: 1;
     }
     .req-inner, .res-inner {
-        background: var(--b05);
+        flex-direction: column;
+        background: var(--req-res-bg);
+        color: var(--req-res-fg);
         padding: 1rem;
+        font-size: 1.1em;
     }
     .req-inner { margin: 1rem 0 }
 
@@ -74,11 +78,12 @@ const dashboardHTML = `
     .list-inner { flex-direction: column }
     .list-item {
         flex-shrink: 0;
+        font-size: 1.2em;
         font-weight: 400;
         height: 52px;
         padding: 1rem;
-        color: var(--b03);
-        background: var(--b07);
+        background: var(--list-item-bg);
+        color: var(--list-item-fg);
         cursor: pointer;
         margin-bottom: .5rem;
         align-items: center;
@@ -88,38 +93,37 @@ const dashboardHTML = `
         box-shadow: 0px 2px 5px 0px rgba(0, 0, 0, 0.1);
     }
     .list-item.selected {
-        color: var(--b0D);
-        border-right: 1rem solid var(--b0D);
-        transition: border .1s linear;
+        /*color: var(--list-item-sel-fg);*/
+        /*background: var(--list-item-sel-fg);*/
+        background: hsla(219, 22%, 25%);
+        /*border-left: 1rem solid var(--list-item-sel-bg);
+        transition: border .1s linear;*/
     }
 
-    .ok,
-    .GET    { color: var(--b0B) }
-    .POST   { color: var(--b09) }
-    .warn,
-    .PUT    { color: var(--b0A) }
-    .PATCH  { color: var(--b04) }
-    .error,
-    .DELETE { color: var(--b08) }
+    .GET    { color: var(--method-get) }
+    .POST   { color: var(--method-post) }
+    .PUT    { color: var(--method-put) }
+    .PATCH  { color: var(--method-patch) }
+    .DELETE { color: var(--method-delete) }
+    .ok     { color: var(--status-ok) }
+    .warn   { color: var(--status-warn) }
+    .error  { color: var(--status-error) }
 
     .method { font-size: 0.7em; margin-right: 1rem; padding: .25rem .5rem }
     .status { font-size: 0.8em; padding-left: 1rem }
     .path   { font-size: 0.8em; flex: 1; text-align: right; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; direction: rtl }
 
-    .req-inner, .res-inner { flex-direction: column  }
-
     pre {
         flex: 1;
-        color: var(--b03);
         word-break: normal; word-wrap: break-word; white-space: pre-wrap;
         z-index: 1;
     }
     .req-inner:before, .res-inner:before {
         bottom: 1rem;
-        font-size: 4em;
-        color: var(--b06);
+        font-size: 5em;
+        color: var(--bg);
         position: fixed;
-        font-weight: 800;
+        font-weight: 700;
     }
     .req-inner:before {
         content: "REQUEST";
@@ -133,7 +137,7 @@ const dashboardHTML = `
         right: .5rem;
         top: 0.25rem;
         font-size: .75em;
-        color: var(--b0E);
+        color: var(--links);
         text-decoration: none;
     }
     </style>
