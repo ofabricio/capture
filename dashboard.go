@@ -18,7 +18,7 @@ const dashboardHTML = `
     <link rel="icon" href="data:;base64,iVBORw0KGgo=">
     <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.6.6/angular.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.0.4/socket.io.js"></script>
-    <link href="https://fonts.googleapis.com/css?family=Roboto:300,400,900" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css?family=Open+Sans:400,800" rel="stylesheet">
     <title>Dashboard</title>
     <style>
 
@@ -45,7 +45,7 @@ const dashboardHTML = `
 
     html, body, .dashboard {
         height: 100%;
-        font: 1em roboto, verdana, arial, helvetica, sans-serif;
+        font: 1em 'Open Sans', verdana, sans-serif;
         font-weight: 400;
     }
 
@@ -74,10 +74,10 @@ const dashboardHTML = `
     .list-inner { flex-direction: column }
     .list-item {
         flex-shrink: 0;
-        font-weight: 300;
+        font-weight: 400;
         height: 52px;
         padding: 1rem;
-        color: var(--b0D);
+        color: var(--b03);
         background: var(--b07);
         cursor: pointer;
         margin-bottom: .5rem;
@@ -88,6 +88,7 @@ const dashboardHTML = `
         box-shadow: 0px 2px 5px 0px rgba(0, 0, 0, 0.1);
     }
     .list-item.selected {
+        color: var(--b0D);
         border-right: 1rem solid var(--b0D);
         transition: border .1s linear;
     }
@@ -107,13 +108,18 @@ const dashboardHTML = `
 
     .req-inner, .res-inner { flex-direction: column  }
 
-    pre { flex: 1; color: var(--b03); word-break: normal; word-wrap: break-word; white-space: pre-wrap; z-index: 1 }
+    pre {
+        flex: 1;
+        color: var(--b03);
+        word-break: normal; word-wrap: break-word; white-space: pre-wrap;
+        z-index: 1;
+    }
     .req-inner:before, .res-inner:before {
         bottom: 1rem;
         font-size: 4em;
         color: var(--b06);
         position: fixed;
-        font-weight: 900;
+        font-weight: 800;
     }
     .req-inner:before {
         content: "REQUEST";
