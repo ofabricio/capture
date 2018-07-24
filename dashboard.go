@@ -36,12 +36,9 @@ const dashboardHTML = `
         --b0A: #c18401;
         --b0B: #50a14f;
         --b0C: #0184bc;
-        --b0D: #4078f2;
-        --b0E: #a626a4;
+        --b0D: #82aaff;
+        --b0E: #c792ea;
         --b0F: #986801;
-
-        --e0D: #82aaff;
-        --e0E: #c792ea;
     }
 
     * { padding: 0; margin: 0; box-sizing: border-box }
@@ -80,7 +77,7 @@ const dashboardHTML = `
         font-weight: 300;
         height: 52px;
         padding: 1rem;
-        color: var(--e0D);
+        color: var(--b0D);
         background: var(--b07);
         cursor: pointer;
         margin-bottom: .5rem;
@@ -130,7 +127,7 @@ const dashboardHTML = `
         right: .5rem;
         top: 0.25rem;
         font-size: .75em;
-        color: var(--e0E);
+        color: var(--b0E);
         text-decoration: none;
     }
     </style>
