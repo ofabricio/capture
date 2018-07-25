@@ -29,7 +29,7 @@ const dashboardHTML = `
         --list-item-sel-bg: #61afef;
         --req-res-bg: #2c313a;
         --req-res-fg: #abb2bf;
-        --links: #60aeee;
+        --links: #55b5c1;
         --method-get: #98c379;
         --method-post: #c678dd;
         --method-put: #d19a66;
