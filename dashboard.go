@@ -26,11 +26,10 @@ const dashboardHTML = `
         --bg: #282c34;
         --list-item-bg: #2c313a;
         --list-item-fg: #abb2bf;
-        --list-item-sel-fg: #61afef;
         --list-item-sel-bg: #61afef;
         --req-res-bg: #2c313a;
         --req-res-fg: #abb2bf;
-        --links: #55b5c1;
+        --links: #60aeee;
         --method-get: #98c379;
         --method-post: #c678dd;
         --method-put: #d19a66;
@@ -87,17 +86,14 @@ const dashboardHTML = `
         cursor: pointer;
         margin-bottom: .5rem;
         align-items: center;
+        transition: background .15s linear;
     }
     .list-item:hover { }
     .list-item, .req-inner, .res-inner {
         box-shadow: 0px 2px 5px 0px rgba(0, 0, 0, 0.1);
     }
     .list-item.selected {
-        /*color: var(--list-item-sel-fg);*/
-        /*background: var(--list-item-sel-fg);*/
-        background: hsla(219, 22%, 25%);
-        /*border-left: 1rem solid var(--list-item-sel-bg);
-        transition: border .1s linear;*/
+        background: hsl(219, 22%, 25%);
     }
 
     .GET    { color: var(--method-get) }
