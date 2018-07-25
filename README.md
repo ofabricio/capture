@@ -23,22 +23,6 @@ For ready-to-use executables for *Windows*, *Linux* and *Mac*, see [Releases](ht
 | `-h`            | Show help |
 
 
-## Building
-
-Manually:
-
-    git clone https://github.com/ofabricio/capture.git
-    cd capture
-    go get -d ./...
-    go build -o capture .
-
-Via docker:
-
-    git clone https://github.com/ofabricio/capture.git
-    cd capture
-    docker build -t capture .
-    docker run --rm -v "${PWD}:/src" -e "OS=linux" capture
-
 ## Using
 
 If you set your base url as `http://example.com/api`, now `http://localhost:9000` points to that
@@ -58,3 +42,20 @@ in favor of the dashboard. However, you can change the dashboard's name with `-d
 ##### Preview
 
 ![dashboard](https://i.imgur.com/NlExLPr.png)
+
+
+## Building
+
+Manually:
+
+    git clone https://github.com/ofabricio/capture.git
+    cd capture
+    go get -d ./...
+    go build -o capture .
+
+Via docker:
+
+    git clone https://github.com/ofabricio/capture.git
+    cd capture
+    docker build -t capture .
+    docker run --rm -v "${PWD}:/src" -e "OS=linux" capture
