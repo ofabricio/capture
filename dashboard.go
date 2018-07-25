@@ -198,7 +198,7 @@ const dashboardHTML = `
             }
 
             $scope.prettifyBody = key => {
-                let regex = /.*\n([\{\[].*[\}\]]).*/gs;
+                let regex = /\n([\{\[](.*\s+)*[\}\]])/;
                 let data = $scope[key];
                 let match = regex.exec(data);
                 let body = match[1];
