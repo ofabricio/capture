@@ -3,6 +3,7 @@ package main
 import "strconv"
 
 type Capture struct {
+	ID       int    `json:"id"`
 	Path     string `json:"path"`
 	Method   string `json:"method"`
 	Status   int    `json:"status"`
@@ -32,7 +33,7 @@ func (items *Captures) ToReferences(itemBaseUrl string) []CaptureRef {
 	refs := make([]CaptureRef, len(*items))
 	for i, item := range *items {
 		refs[i] = CaptureRef{
-			ID:      i,
+			ID:      item.ID,
 			Path:    item.Path,
 			Method:  item.Method,
 			Status:  item.Status,

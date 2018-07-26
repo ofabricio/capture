@@ -21,6 +21,7 @@ type Transport struct {
 	http.RoundTripper
 }
 
+var captureID = 0
 var captures Captures
 
 var socket socketio.Socket
@@ -101,12 +102,14 @@ func (t Transport) RoundTrip(req *http.Request) (*http.Response, error) {
 	}
 
 	capture := Capture{
+		ID:       captureID,
 		Path:     req.URL.Path,
 		Method:   req.Method,
 		Status:   res.StatusCode,
 		Request:  string(reqDump),
 		Response: string(resDump),
 	}
+	captureID++
 
 	captures.Add(capture)
 	emit()
