@@ -156,8 +156,8 @@ const dashboardHTML = `
 
     <div class="req">
         <div class="req-inner">
-        <a ng-show="canPrettifyRequestBody" ng-click="prettifyBody('request')" href="#" class="bt-pretty">prettify</a>
-        <pre>{{request}}</pre>
+            <a ng-show="canPrettifyRequestBody" ng-click="prettifyBody('request')" href="#" class="bt-pretty">prettify</a>
+            <pre>{{request}}</pre>
         </div>
     </div>
 
