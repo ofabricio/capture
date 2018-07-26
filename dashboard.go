@@ -15,6 +15,7 @@ const dashboardHTML = `
 <!DOCTYPE html>
 <html ng-app="app">
 <head>
+    <meta charset="utf-8">
     <link rel="icon" href="data:;base64,iVBORw0KGgo=">
     <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.6.6/angular.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.0.4/socket.io.js"></script>
@@ -122,10 +123,10 @@ const dashboardHTML = `
         font-weight: 700;
     }
     .req-inner:before {
-        content: "REQUEST";
+        content: "↑REQUEST";
     }
     .res-inner:before {
-        content: "RESPONSE";
+        content: "↓RESPONSE";
     }
 
     .bt-pretty {
