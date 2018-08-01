@@ -1,16 +1,5 @@
 package main
 
-import (
-	"net/http"
-)
-
-func getDashboardHandler() http.Handler {
-	return http.HandlerFunc(func(response http.ResponseWriter, request *http.Request) {
-		response.Header().Add("Content-Type", "text/html")
-		response.Write([]byte(dashboardHTML))
-	})
-}
-
 const dashboardHTML = `
 <!DOCTYPE html>
 <html ng-app="app">
