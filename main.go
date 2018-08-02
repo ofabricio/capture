@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"compress/gzip"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -29,18 +28,20 @@ var host string
 var dashboardPath string
 var dashboardItemPath string
 
-func main() {
-	parseArgs()
+var args Args
 
-	dashboardPath = "/" + args.dashboard + "/"
-	dashboardItemPath = dashboardPath + "items/"
+func main() {
+	args = args.Parse()
+
+	dashboardPath = fmt.Sprintf("/%s/", args.dashboard)
+	dashboardItemPath = fmt.Sprintf("/%s/items/", args.dashboard)
 
 	http.Handle("/", getProxyHandler())
 	http.Handle("/socket.io/", getSocketHandler())
 	http.Handle(dashboardItemPath, getDashboardItemHandler())
 	http.Handle(dashboardPath, getDashboardHandler())
 
-	host = "http://localhost:" + args.port
+	host = fmt.Sprintf("http://localhost:%s", args.port)
 
 	fmt.Printf("\nListening on %s", host)
 	fmt.Printf("\n             %s/%s\n\n", host, args.dashboard)
@@ -100,7 +101,7 @@ func (t transport) RoundTrip(req *http.Request) (*http.Response, error) {
 
 	res, err := t.RoundTripper.RoundTrip(req)
 	if err != nil {
-		return nil, errors.New("uh oh | " + err.Error() + " | " + req.URL.String())
+		return nil, fmt.Errorf("uh oh | %v | %s", err, req.URL)
 	}
 
 	resDump, err := DumpResponse(res)
