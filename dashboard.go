@@ -6,8 +6,8 @@ const dashboardHTML = `
 <head>
     <meta charset="utf-8">
     <link rel="icon" href="data:;base64,iVBORw0KGgo=">
-    <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.6.6/angular.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.0.4/socket.io.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/angular.js/1.7.2/angular.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.1.1/socket.io.slim.js"></script>
     <link href="https://fonts.googleapis.com/css?family=Inconsolata:400,700" rel="stylesheet">
     <title>Dashboard</title>
     <style>
@@ -134,7 +134,7 @@ const dashboardHTML = `
 
     <div class="list">
         <div class="list-inner">
-            <div class="list-item" ng-repeat="item in items | orderBy: '-id' track by item.id" ng-click="show(item)"
+            <div class="list-item" ng-repeat="item in items | orderBy: '-id' track by $index" ng-click="show(item)"
                  ng-class="{selected: isItemSelected(item)}">
                 <span class="method" ng-class="item.method">{{item.method}}</span>
                 <span class="path">&lrm;{{item.path}}&lrm;</span>
@@ -166,7 +166,7 @@ const dashboardHTML = `
             $scope.show = item => {
                 $scope.path = item.path;
                 $scope.selectedId = item.id;
-                $http.get(item.itemUrl).then(r => {
+                $http.get(item.infoPath).then(r => {
                     $scope.request  = r.data.request;
                     $scope.response = r.data.response;
                     $scope.canPrettifyRequestBody = r.data.request.indexOf('Content-Type: application/json') != -1;
