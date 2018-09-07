@@ -95,7 +95,8 @@ func getDashboardItemInfoHandler() http.Handler {
 	})
 }
 
-func getProxyHandler(url *url.URL, transp *transport) http.Handler {
+func getProxyHandler(targetURL string, transp *transport) http.Handler {
+	url, _ := url.Parse(targetURL)
 	proxy := httputil.NewSingleHostReverseProxy(url)
 	proxy.Transport = transp
 	return http.HandlerFunc(func(response http.ResponseWriter, request *http.Request) {

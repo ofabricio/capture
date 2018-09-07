@@ -1,15 +1,12 @@
 package main
 
-import (
-	"flag"
-	"net/url"
-)
+import "flag"
 
 type Args struct {
-	TargetURL   *url.URL `json:"targetURL"`
-	ProxyPort   string   `json:"proxyPort"`
-	Dashboard   string   `json:"dashboard"`
-	MaxCaptures int      `json:"maxCaptures"`
+	TargetURL   string `json:"targetURL"`
+	ProxyPort   string `json:"proxyPort"`
+	Dashboard   string `json:"dashboard"`
+	MaxCaptures int    `json:"maxCaptures"`
 }
 
 func ParseArgs() Args {
@@ -18,6 +15,5 @@ func ParseArgs() Args {
 	dashboard := flag.String("dashboard", "dashboard", "Set the dashboard name")
 	maxCaptures := flag.Int("max-captures", 16, "Set the max number of captures to show in the dashboard")
 	flag.Parse()
-	url, _ := url.Parse(*targetURL)
-	return Args{url, *proxyPort, *dashboard, *maxCaptures}
+	return Args{*targetURL, *proxyPort, *dashboard, *maxCaptures}
 }

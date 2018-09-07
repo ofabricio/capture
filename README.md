@@ -20,7 +20,6 @@ For ready-to-use executables for *Windows*, *Linux* and *Mac*, see [Releases](ht
 | `-port`         | Set the proxy port. Default: *9000* |
 | `-dashboard`    | Set the dashboard's name. Default: *dashboard* |
 | `-max-captures` | Set the max number of captures to show in the dashboard. Default: *16* |
-| `-h`            | Show help |
 
 
 ## Using
