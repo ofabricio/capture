@@ -6,10 +6,10 @@ import (
 )
 
 type Args struct {
-	targetURL   *url.URL
-	proxyPort   string
-	dashboard   string
-	maxCaptures int
+	TargetURL   *url.URL `json:"targetURL"`
+	ProxyPort   string   `json:"proxyPort"`
+	Dashboard   string   `json:"dashboard"`
+	MaxCaptures int      `json:"maxCaptures"`
 }
 
 func ParseArgs() Args {

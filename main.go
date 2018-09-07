@@ -30,41 +30,52 @@ var dashboardSocket socketio.Socket
 func main() {
 	args := ParseArgs()
 
-	proxyHost := fmt.Sprintf("http://localhost:%s", args.proxyPort)
-	dashboardPath := fmt.Sprintf("/%s/", args.dashboard)
-	dashboardItemInfoPath := fmt.Sprintf("/%s/items/", args.dashboard)
+	proxyHost := fmt.Sprintf("http://localhost:%s", args.ProxyPort)
+	dashboardPath := fmt.Sprintf("/%s/", args.Dashboard)
+	dashboardClearPath := fmt.Sprintf("/%s/clear/", args.Dashboard)
+	dashboardItemInfoPath := fmt.Sprintf("/%s/items/", args.Dashboard)
 
 	transp := &transport{
 		RoundTripper: http.DefaultTransport,
 		itemInfoPath: dashboardItemInfoPath,
-		maxItems:     args.maxCaptures,
+		maxItems:     args.MaxCaptures,
 		currItemID:   0,
 	}
 
-	http.Handle("/", getProxyHandler(args.targetURL, transp))
-	http.Handle("/socket.io/", getDashboardSocketHandler())
+	http.Handle("/", getProxyHandler(args.TargetURL, transp))
+	http.Handle("/socket.io/", getDashboardSocketHandler(args))
 	http.Handle(dashboardPath, getDashboardHandler())
+	http.Handle(dashboardClearPath, getDashboardClearHandler())
 	http.Handle(dashboardItemInfoPath, getDashboardItemInfoHandler())
 
 	fmt.Printf("\nListening on %s", proxyHost)
-	fmt.Printf("\n             %s/%s\n\n", proxyHost, args.dashboard)
+	fmt.Printf("\n             %s/%s\n\n", proxyHost, args.Dashboard)
 
-	fmt.Println(http.ListenAndServe(":"+args.proxyPort, nil))
+	fmt.Println(http.ListenAndServe(":"+args.ProxyPort, nil))
 }
 
-func getDashboardSocketHandler() http.Handler {
+func getDashboardSocketHandler(args Args) http.Handler {
 	server, err := socketio.NewServer(nil)
 	if err != nil {
 		fmt.Println("socket server error", err)
 	}
 	server.On("connection", func(so socketio.Socket) {
 		dashboardSocket = so
-		dashboardSocket.Emit("captures", captures.MetadataOnly())
+		dashboardSocket.Emit("config", args)
+		emitToDashboard(captures)
 	})
 	server.On("error", func(so socketio.Socket, err error) {
 		fmt.Println("socket error", err)
 	})
 	return server
+}
+
+func getDashboardClearHandler() http.Handler {
+	return http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
+		captures = nil
+		emitToDashboard(captures)
+		res.Write([]byte(""))
+	})
 }
 
 func getDashboardHandler() http.Handler {
@@ -122,9 +133,7 @@ func (t *transport) RoundTrip(req *http.Request) (*http.Response, error) {
 
 	captures.Add(capture)
 	captures.RemoveLastAfterReaching(t.maxItems)
-	if dashboardSocket != nil {
-		dashboardSocket.Emit("captures", captures.MetadataOnly())
-	}
+	emitToDashboard(captures)
 	return res, nil
 }
 
@@ -147,4 +156,10 @@ func dumpResponse(res *http.Response) ([]byte, error) {
 	resDump, err := httputil.DumpResponse(res, true)
 	res.Body = ioutil.NopCloser(&originalBody)
 	return resDump, err
+}
+
+func emitToDashboard(captures Captures) {
+	if dashboardSocket != nil {
+		dashboardSocket.Emit("captures", captures.MetadataOnly())
+	}
 }

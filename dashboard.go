@@ -16,7 +16,7 @@ const dashboardHTML = `
         --bg: #282c34;
         --list-item-bg: #2c313a;
         --list-item-fg: #abb2bf;
-        --list-item-sel-bg: #61afef;
+        --list-item-sel-bg: hsl(219, 22%, 25%);
         --req-res-bg: #2c313a;
         --req-res-fg: #abb2bf;
         --links: #55b5c1;
@@ -28,6 +28,8 @@ const dashboardHTML = `
         --status-ok: #98c379;
         --status-warn: #d19a66;
         --status-error: #e06c75;
+        --btn-bg: var(--list-item-bg);
+        --btn-hover: var(--list-item-sel-bg);
     }
 
     * { padding: 0; margin: 0; box-sizing: border-box }
@@ -37,31 +39,36 @@ const dashboardHTML = `
         font-family: 'Inconsolata', monospace;
         font-size: 1em;
         font-weight: 400;
+        background: var(--bg);
     }
 
-    div { display: flex; position: relative }
+    body { padding: .5rem; }
 
-    .dashboard { background: var(--bg) }
+    div { display: flex; position: relative }
 
     .list, .req, .res {
         flex: 0 0 37%;
         overflow: auto;
+        flex-direction: column;
+        padding: .5rem;
     }
 
+    .list, .req { padding-right: .5rem; }
+    .req, .res { padding-left: .5rem; }
+
     .list-inner, .req-inner, .res-inner {
-        margin: 1rem;
         overflow-x: hidden;
         overflow-y: auto;
         flex: 1;
     }
+
     .req-inner, .res-inner {
-        flex-direction: column;
         background: var(--req-res-bg);
-        color: var(--req-res-fg);
-        padding: 1rem;
-        font-size: 1.1em;
     }
-    .req-inner { margin: 1rem 0 }
+
+    .req, .res {
+        color: var(--req-res-fg);
+    }
 
     .list { flex: 0 0 26% }
     .list-inner { flex-direction: column }
@@ -69,7 +76,7 @@ const dashboardHTML = `
         flex-shrink: 0;
         font-size: 1.2em;
         font-weight: 400;
-        height: 52px;
+        height: 51px;
         padding: 1rem;
         background: var(--list-item-bg);
         color: var(--list-item-fg);
@@ -83,7 +90,7 @@ const dashboardHTML = `
         box-shadow: 0px 2px 5px 0px rgba(0, 0, 0, 0.1);
     }
     .list-item.selected {
-        background: hsl(219, 22%, 25%);
+        background: var(--list-item-sel-bg);
     }
 
     .GET    { color: var(--method-get) }
@@ -102,29 +109,62 @@ const dashboardHTML = `
     pre {
         flex: 1;
         word-break: normal; word-wrap: break-word; white-space: pre-wrap;
-        z-index: 1;
+        z-index: 2;
+        padding: 1rem;
     }
-    .req-inner:before, .res-inner:before {
-        bottom: 1rem;
+    .req:before, .res:before {
+        bottom: .5rem;
+        left: 1rem;
         font-size: 5em;
         color: var(--bg);
-        position: fixed;
+        position: absolute;
         font-weight: 700;
+        z-index: 1;
     }
-    .req-inner:before {
+    .req:before {
         content: "↑REQUEST";
     }
-    .res-inner:before {
+    .res:before {
         content: "↓RESPONSE";
     }
 
-    .bt-pretty {
-        position: absolute;
-        right: .5rem;
-        top: 0.25rem;
+    .controls {
+        margin-bottom: .5rem;
+    }
+    .controls > * {
+        margin-right: .5rem;
+    }
+    button {
+        background: var(--btn-bg);
+        border: 0;
+        padding: .5rem 1rem;
         font-size: .75em;
+        font-family: inherit;
         color: var(--links);
-        text-decoration: none;
+        cursor: pointer;
+        outline: 0;
+    }
+    button:disabled {
+        color: hsl(187, 5%, 50%);
+        cursor: default;
+    }
+    button:hover:enabled {
+        background: var(--btn-hover);
+    }
+
+    .welcome {
+        position: absolute;
+        background: rgba(0, 0, 0, .5);
+        justify-content: center;
+        z-index: 9;
+        color: #fff;
+        font-size: 2em;
+        top: 50%;
+        right: 1rem;
+        left: 1rem;
+        transform: translate(0%, -50%);
+        padding: 3rem;
+        box-shadow: 0px 0px 20px 10px rgba(0, 0, 0, 0.1);
     }
     </style>
 </head>
@@ -133,6 +173,9 @@ const dashboardHTML = `
 <div class="dashboard" ng-controller="controller">
 
     <div class="list">
+        <div class="controls">
+            <button ng-disabled="items.length == 0" ng-click="clearDashboard()">clear</button>
+        </div>
         <div class="list-inner">
             <div class="list-item" ng-repeat="item in items | orderBy: '-id' track by $index" ng-click="show(item)"
                  ng-class="{selected: isItemSelected(item)}">
@@ -144,17 +187,25 @@ const dashboardHTML = `
     </div>
 
     <div class="req">
+        <div class="controls">
+            <button ng-disabled="!canPrettifyBody('request')" ng-click="prettifyBody('request')">prettify</button>
+        </div>
         <div class="req-inner">
-            <a ng-show="canPrettifyRequestBody" ng-click="prettifyBody('request')" href="#" class="bt-pretty">prettify</a>
             <pre>{{request}}</pre>
         </div>
     </div>
 
     <div class="res">
+        <div class="controls">
+            <button ng-disabled="!canPrettifyBody('response')" ng-click="prettifyBody('response')">prettify</button>
+        </div>
         <div class="res-inner">
-            <a ng-show="canPrettifyResponseBody" ng-click="prettifyBody('response')" href="#" class="bt-pretty">prettify</a>
             <pre>{{response}}</pre>
         </div>
+    </div>
+
+    <div class="welcome" ng-show="items.length == 0">
+        Waiting for requests on http://localhost:{{config.proxyPort}}/
     </div>
 
 </div>
@@ -169,8 +220,6 @@ const dashboardHTML = `
                 $http.get(item.infoPath).then(r => {
                     $scope.request  = r.data.request;
                     $scope.response = r.data.response;
-                    $scope.canPrettifyRequestBody = r.data.request.indexOf('Content-Type: application/json') != -1;
-                    $scope.canPrettifyResponseBody = r.data.response.indexOf('Content-Type: application/json') != -1;
                 });
             }
 
@@ -181,6 +230,19 @@ const dashboardHTML = `
 
             $scope.isItemSelected = item => {
                 return $scope.selectedId == item.id;
+            }
+
+            $scope.clearDashboard = () => {
+                $http.get('/' + $scope.config.dashboard + '/clear').then(() => {
+                    $scope.request = $scope.response = null;
+                });
+            }
+
+            $scope.canPrettifyBody = name => {
+                if (!$scope[name]) {
+                    return false;
+                }
+                return $scope[name].indexOf('Content-Type: application/json') != -1;
             }
 
             $scope.prettifyBody = key => {
@@ -194,6 +256,10 @@ const dashboardHTML = `
 
             let socket = io();
             socket.on('connect', () => {
+                socket.on('config', args => {
+                    $scope.config = args;
+                    $scope.$apply();
+                });
                 socket.on('captures', captures => {
                     $scope.items = captures;
                     $scope.$apply();
