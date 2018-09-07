@@ -41,7 +41,7 @@ in favor of the dashboard. However, you can change the dashboard's name with `-d
 
 ##### Preview
 
-![dashboard](https://i.imgur.com/h0CpH4m.png)
+![dashboard](https://i.imgur.com/V2mEUfZ.png)
 
 
 ## Building
