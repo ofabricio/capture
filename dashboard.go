@@ -256,9 +256,10 @@ const dashboardHTML = `
 
             let socket = io();
             socket.on('connect', () => {
+                socket.off('config');
+                socket.off('captures');
                 socket.on('config', args => {
                     $scope.config = args;
-                    $scope.$apply();
                 });
                 socket.on('captures', captures => {
                     $scope.items = captures;
