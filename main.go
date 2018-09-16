@@ -18,9 +18,8 @@ import (
 
 type transport struct {
 	http.RoundTripper
-	itemInfoPath string
-	maxItems     int
-	currItemID   int
+	maxItems   int
+	currItemID int
 }
 
 var captures Captures
@@ -30,23 +29,19 @@ var dashboardSocket socketio.Socket
 func main() {
 	args := ParseArgs()
 
-	proxyHost := fmt.Sprintf("http://localhost:%s", args.ProxyPort)
-	dashboardPath := fmt.Sprintf("/%s/", args.Dashboard)
-	dashboardClearPath := fmt.Sprintf("/%s/clear/", args.Dashboard)
-	dashboardItemInfoPath := fmt.Sprintf("/%s/items/", args.Dashboard)
-
 	transp := &transport{
 		RoundTripper: http.DefaultTransport,
-		itemInfoPath: dashboardItemInfoPath,
 		maxItems:     args.MaxCaptures,
 		currItemID:   0,
 	}
 
 	http.Handle("/", getProxyHandler(args.TargetURL, transp))
 	http.Handle("/socket.io/", getDashboardSocketHandler(args))
-	http.Handle(dashboardPath, getDashboardHandler())
-	http.Handle(dashboardClearPath, getDashboardClearHandler())
-	http.Handle(dashboardItemInfoPath, getDashboardItemInfoHandler())
+	http.Handle(args.DashboardPath, getDashboardHandler())
+	http.Handle(args.DashboardClearPath, getDashboardClearHandler())
+	http.Handle(args.DashboardItemInfoPath, getDashboardItemInfoHandler())
+
+	proxyHost := fmt.Sprintf("http://localhost:%s", args.ProxyPort)
 
 	fmt.Printf("\nListening on %s", proxyHost)
 	fmt.Printf("\n             %s/%s\n\n", proxyHost, args.Dashboard)
@@ -87,11 +82,16 @@ func getDashboardHandler() http.Handler {
 
 func getDashboardItemInfoHandler() http.Handler {
 	return http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
-		id := req.URL.Path[strings.LastIndex(req.URL.Path, "/")+1:]
-		i, _ := strconv.Atoi(id)
-		json, _ := json.Marshal(captures[i])
-		res.Header().Add("Content-Type", "application/json")
-		res.Write([]byte(json))
+		idStr := req.URL.Path[strings.LastIndex(req.URL.Path, "/")+1:]
+		idInt, _ := strconv.Atoi(idStr)
+		for _, c := range captures {
+			if c.ID == idInt {
+				json, _ := json.Marshal(c)
+				res.Header().Add("Content-Type", "application/json")
+				res.Write([]byte(json))
+				return
+			}
+		}
 	})
 }
 
@@ -127,7 +127,6 @@ func (t *transport) RoundTrip(req *http.Request) (*http.Response, error) {
 		Path:     req.URL.Path,
 		Method:   req.Method,
 		Status:   res.StatusCode,
-		InfoPath: t.itemInfoPath,
 		Request:  string(reqDump),
 		Response: string(resDump),
 	}

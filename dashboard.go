@@ -217,7 +217,8 @@ const dashboardHTML = `
             $scope.show = item => {
                 $scope.path = item.path;
                 $scope.selectedId = item.id;
-                $http.get(item.infoPath).then(r => {
+                let path = $scope.config.dashboardItemInfoPath + item.id;
+                $http.get(path).then(r => {
                     $scope.request  = r.data.request;
                     $scope.response = r.data.response;
                 });
@@ -233,9 +234,11 @@ const dashboardHTML = `
             }
 
             $scope.clearDashboard = () => {
-                $http.get('/' + $scope.config.dashboard + '/clear').then(() => {
-                    $scope.request = $scope.response = null;
-                });
+                $http.get($scope.config.dashboardClearPath).then(clearRequestAndResponse);
+            }
+
+            function clearRequestAndResponse() {
+                $scope.request = $scope.response = null;
             }
 
             $scope.canPrettifyBody = name => {
@@ -256,6 +259,7 @@ const dashboardHTML = `
 
             let socket = io();
             socket.on('connect', () => {
+                clearRequestAndResponse();
                 socket.off('config');
                 socket.off('captures');
                 socket.on('config', args => {
