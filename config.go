@@ -5,7 +5,7 @@ import (
 	"fmt"
 )
 
-type Args struct {
+type Config struct {
 	TargetURL             string `json:"targetURL"`
 	ProxyPort             string `json:"proxyPort"`
 	MaxCaptures           int    `json:"maxCaptures"`
@@ -15,7 +15,7 @@ type Args struct {
 	DashboardItemInfoPath string `json:"dashboardItemInfoPath"`
 }
 
-func ParseArgs() Args {
+func ReadConfig() Config {
 	targetURL := flag.String("url", "https://jsonplaceholder.typicode.com", "Required. Set the base url you want to capture")
 	proxyPort := flag.String("port", "9000", "Set the proxy port")
 	dashboard := flag.String("dashboard", "dashboard", "Set the dashboard name")
@@ -26,7 +26,7 @@ func ParseArgs() Args {
 	dashboardClearPath := fmt.Sprintf("/%s/clear/", *dashboard)
 	dashboardItemInfoPath := fmt.Sprintf("/%s/items/", *dashboard)
 
-	return Args{
+	return Config{
 		TargetURL:             *targetURL,
 		ProxyPort:             *proxyPort,
 		MaxCaptures:           *maxCaptures,

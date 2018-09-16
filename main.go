@@ -27,36 +27,36 @@ var captures Captures
 var dashboardSocket socketio.Socket
 
 func main() {
-	args := ParseArgs()
+	config := ReadConfig()
 
 	transp := &transport{
 		RoundTripper: http.DefaultTransport,
-		maxItems:     args.MaxCaptures,
+		maxItems:     config.MaxCaptures,
 		currItemID:   0,
 	}
 
-	http.Handle("/", getProxyHandler(args.TargetURL, transp))
-	http.Handle("/socket.io/", getDashboardSocketHandler(args))
-	http.Handle(args.DashboardPath, getDashboardHandler())
-	http.Handle(args.DashboardClearPath, getDashboardClearHandler())
-	http.Handle(args.DashboardItemInfoPath, getDashboardItemInfoHandler())
+	http.Handle("/", getProxyHandler(config.TargetURL, transp))
+	http.Handle("/socket.io/", getDashboardSocketHandler(config))
+	http.Handle(config.DashboardPath, getDashboardHandler())
+	http.Handle(config.DashboardClearPath, getDashboardClearHandler())
+	http.Handle(config.DashboardItemInfoPath, getDashboardItemInfoHandler())
 
-	proxyHost := fmt.Sprintf("http://localhost:%s", args.ProxyPort)
+	proxyHost := fmt.Sprintf("http://localhost:%s", config.ProxyPort)
 
 	fmt.Printf("\nListening on %s", proxyHost)
-	fmt.Printf("\n             %s/%s\n\n", proxyHost, args.Dashboard)
+	fmt.Printf("\n             %s/%s\n\n", proxyHost, config.Dashboard)
 
-	fmt.Println(http.ListenAndServe(":"+args.ProxyPort, nil))
+	fmt.Println(http.ListenAndServe(":"+config.ProxyPort, nil))
 }
 
-func getDashboardSocketHandler(args Args) http.Handler {
+func getDashboardSocketHandler(config Config) http.Handler {
 	server, err := socketio.NewServer(nil)
 	if err != nil {
 		fmt.Println("socket server error", err)
 	}
 	server.On("connection", func(so socketio.Socket) {
 		dashboardSocket = so
-		dashboardSocket.Emit("config", args)
+		dashboardSocket.Emit("config", config)
 		emitToDashboard(captures)
 	})
 	server.On("error", func(so socketio.Socket, err error) {
