@@ -76,7 +76,7 @@ const dashboardHTML = `
         flex-shrink: 0;
         font-size: 1.2em;
         font-weight: 400;
-        height: 51px;
+        height: 50px;
         padding: 1rem;
         background: var(--list-item-bg);
         color: var(--list-item-fg);
