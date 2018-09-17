@@ -111,6 +111,7 @@ const dashboardHTML = `
         word-break: normal; word-wrap: break-word; white-space: pre-wrap;
         z-index: 2;
         padding: 1rem;
+        width: 100%;
     }
     .req:before, .res:before {
         bottom: .5rem;
