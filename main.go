@@ -86,10 +86,9 @@ func getDashboardItemInfoHandler() http.Handler {
 		idInt, _ := strconv.Atoi(idStr)
 		for _, c := range captures {
 			if c.ID == idInt {
-				json, _ := json.Marshal(c)
 				res.Header().Add("Content-Type", "application/json")
-				res.Write([]byte(json))
-				return
+				json.NewEncoder(res).Encode(c)
+				break
 			}
 		}
 	})
