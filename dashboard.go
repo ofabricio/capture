@@ -112,6 +112,9 @@ const dashboardHTML = `
         z-index: 2;
         padding: 1rem;
         width: 100%;
+        font-family: inherit;
+        font-weight: 400;
+        line-height: 1.2em;
     }
     .req:before, .res:before {
         bottom: .5rem;
