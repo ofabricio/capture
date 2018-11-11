@@ -16,30 +16,21 @@ import (
 	"github.com/googollee/go-socket.io"
 )
 
-type transport struct {
-	http.RoundTripper
-	maxItems   int
-	currItemID int
-}
-
 var captures Captures
 
 var dashboardSocket socketio.Socket
 
 func main() {
 	config := ReadConfig()
+	startCapture(config)
+}
 
-	transp := &transport{
-		RoundTripper: http.DefaultTransport,
-		maxItems:     config.MaxCaptures,
-		currItemID:   0,
-	}
-
-	http.Handle("/", getProxyHandler(config.TargetURL, transp))
-	http.Handle("/socket.io/", getDashboardSocketHandler(config))
-	http.Handle(config.DashboardPath, getDashboardHandler())
-	http.Handle(config.DashboardClearPath, getDashboardClearHandler())
-	http.Handle(config.DashboardItemInfoPath, getDashboardItemInfoHandler())
+func startCapture(config Config) {
+	http.Handle("/", proxyHandler(config))
+	http.Handle("/socket.io/", dashboardSocketHandler(config))
+	http.Handle(config.DashboardPath, dashboardHandler())
+	http.Handle(config.DashboardClearPath, dashboardClearHandler())
+	http.Handle(config.DashboardItemInfoPath, dashboardItemInfoHandler())
 
 	proxyHost := fmt.Sprintf("http://localhost:%s", config.ProxyPort)
 
@@ -49,7 +40,7 @@ func main() {
 	fmt.Println(http.ListenAndServe(":"+config.ProxyPort, nil))
 }
 
-func getDashboardSocketHandler(config Config) http.Handler {
+func dashboardSocketHandler(config Config) http.Handler {
 	server, err := socketio.NewServer(nil)
 	if err != nil {
 		fmt.Println("socket server error", err)
@@ -65,7 +56,7 @@ func getDashboardSocketHandler(config Config) http.Handler {
 	return server
 }
 
-func getDashboardClearHandler() http.Handler {
+func dashboardClearHandler() http.Handler {
 	return http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
 		captures = nil
 		emitToDashboard(captures)
@@ -73,14 +64,14 @@ func getDashboardClearHandler() http.Handler {
 	})
 }
 
-func getDashboardHandler() http.Handler {
+func dashboardHandler() http.Handler {
 	return http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
 		res.Header().Add("Content-Type", "text/html")
 		res.Write([]byte(dashboardHTML))
 	})
 }
 
-func getDashboardItemInfoHandler() http.Handler {
+func dashboardItemInfoHandler() http.Handler {
 	return http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
 		idStr := req.URL.Path[strings.LastIndex(req.URL.Path, "/")+1:]
 		idInt, _ := strconv.Atoi(idStr)
@@ -94,67 +85,70 @@ func getDashboardItemInfoHandler() http.Handler {
 	})
 }
 
-func getProxyHandler(targetURL string, transp *transport) http.Handler {
-	url, _ := url.Parse(targetURL)
-	proxy := httputil.NewSingleHostReverseProxy(url)
-	proxy.Transport = transp
-	return http.HandlerFunc(func(response http.ResponseWriter, request *http.Request) {
-		request.Host = request.URL.Host
-		proxy.ServeHTTP(response, request)
+func proxyHandler(config Config) http.Handler {
+	url, _ := url.Parse(config.TargetURL)
+	captureID := 0
+	return http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
+		req.Host = url.Host
+		req.URL.Host = url.Host
+		req.URL.Scheme = url.Scheme
+
+		reqDump, err := dumpRequest(req)
+		if err != nil {
+			fmt.Printf("Could not dump request: %v\n", err)
+		}
+
+		proxy := httputil.NewSingleHostReverseProxy(url)
+		proxy.ModifyResponse = func(res *http.Response) error {
+			resDump, err := dumpResponse(res)
+			if err != nil {
+				return fmt.Errorf("Could not dump response: %v", err)
+			}
+			captureID++
+			capture := Capture{
+				ID:       captureID,
+				Path:     req.URL.Path,
+				Method:   req.Method,
+				Status:   res.StatusCode,
+				Request:  string(reqDump),
+				Response: string(resDump),
+			}
+			captures.Add(capture)
+			captures.RemoveLastAfterReaching(config.MaxCaptures)
+			emitToDashboard(captures)
+			return nil
+		}
+		proxy.ErrorHandler = func(rw http.ResponseWriter, req *http.Request, err error) {
+			fmt.Printf("uh oh | %v | %s\n", err, req.URL)
+		}
+		proxy.ServeHTTP(rw, req)
 	})
 }
 
-func (t *transport) RoundTrip(req *http.Request) (*http.Response, error) {
-
-	reqDump, err := dumpRequest(req)
-	if err != nil {
-		return nil, err
-	}
-
-	res, err := t.RoundTripper.RoundTrip(req)
-	if err != nil {
-		return nil, fmt.Errorf("uh oh | %v | %s", err, req.URL)
-	}
-
-	resDump, err := dumpResponse(res)
-	if err != nil {
-		return nil, err
-	}
-
-	capture := Capture{
-		ID:       t.NewItemID(),
-		Path:     req.URL.Path,
-		Method:   req.Method,
-		Status:   res.StatusCode,
-		Request:  string(reqDump),
-		Response: string(resDump),
-	}
-
-	captures.Add(capture)
-	captures.RemoveLastAfterReaching(t.maxItems)
-	emitToDashboard(captures)
-	return res, nil
-}
-
-func (t *transport) NewItemID() int {
-	t.currItemID++
-	return t.currItemID
-}
-
 func dumpRequest(req *http.Request) ([]byte, error) {
+	if req.Header.Get("Content-Encoding") == "gzip" {
+		var originalBody bytes.Buffer
+		tee := io.TeeReader(req.Body, &originalBody)
+		reader, _ := gzip.NewReader(tee)
+		req.Body = ioutil.NopCloser(reader)
+		reqDump, err := httputil.DumpRequest(req, true)
+		req.Body = ioutil.NopCloser(&originalBody)
+		return reqDump, err
+	}
 	return httputil.DumpRequest(req, true)
 }
 
 func dumpResponse(res *http.Response) ([]byte, error) {
-	var originalBody bytes.Buffer
-	reader := io.TeeReader(res.Body, &originalBody)
 	if res.Header.Get("Content-Encoding") == "gzip" {
-		reader, _ = gzip.NewReader(reader)
+		var originalBody bytes.Buffer
+		tee := io.TeeReader(res.Body, &originalBody)
+		reader, _ := gzip.NewReader(tee)
+		res.Body = ioutil.NopCloser(reader)
+		resDump, err := httputil.DumpResponse(res, true)
+		res.Body = ioutil.NopCloser(&originalBody)
+		return resDump, err
 	}
-	res.Body = ioutil.NopCloser(reader)
-	resDump, err := httputil.DumpResponse(res, true)
-	res.Body = ioutil.NopCloser(&originalBody)
-	return resDump, err
+	return httputil.DumpResponse(res, true)
 }
 
 func emitToDashboard(captures Captures) {
