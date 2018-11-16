@@ -32,10 +32,10 @@ func startCapture(config Config) {
 	http.Handle(config.DashboardClearPath, dashboardClearHandler())
 	http.Handle(config.DashboardItemInfoPath, dashboardItemInfoHandler())
 
-	proxyHost := fmt.Sprintf("http://localhost:%s", config.ProxyPort)
+	captureHost := fmt.Sprintf("http://localhost:%s", config.ProxyPort)
 
-	fmt.Printf("\nListening on %s", proxyHost)
-	fmt.Printf("\n             %s/%s\n\n", proxyHost, config.Dashboard)
+	fmt.Printf("\nListening on %s", captureHost)
+	fmt.Printf("\n             %s/%s\n\n", captureHost, config.Dashboard)
 
 	fmt.Println(http.ListenAndServe(":"+config.ProxyPort, nil))
 }
@@ -43,7 +43,7 @@ func startCapture(config Config) {
 func dashboardSocketHandler(config Config) http.Handler {
 	server, err := socketio.NewServer(nil)
 	if err != nil {
-		fmt.Println("socket server error", err)
+		fmt.Printf("socket server error: %v\n", err)
 	}
 	server.On("connection", func(so socketio.Socket) {
 		dashboardSocket = so
@@ -51,34 +51,34 @@ func dashboardSocketHandler(config Config) http.Handler {
 		emitToDashboard(captures)
 	})
 	server.On("error", func(so socketio.Socket, err error) {
-		fmt.Println("socket error", err)
+		fmt.Printf("socket error: %v\n", err)
 	})
 	return server
 }
 
 func dashboardClearHandler() http.Handler {
-	return http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
+	return http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
 		captures = nil
 		emitToDashboard(captures)
-		res.Write([]byte(""))
+		rw.WriteHeader(http.StatusOK)
 	})
 }
 
 func dashboardHandler() http.Handler {
-	return http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
-		res.Header().Add("Content-Type", "text/html")
-		res.Write([]byte(dashboardHTML))
+	return http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
+		rw.Header().Add("Content-Type", "text/html")
+		fmt.Fprint(rw, dashboardHTML)
 	})
 }
 
 func dashboardItemInfoHandler() http.Handler {
-	return http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
+	return http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
 		idStr := req.URL.Path[strings.LastIndex(req.URL.Path, "/")+1:]
 		idInt, _ := strconv.Atoi(idStr)
 		for _, c := range captures {
 			if c.ID == idInt {
-				res.Header().Add("Content-Type", "application/json")
-				json.NewEncoder(res).Encode(c)
+				rw.Header().Add("Content-Type", "application/json")
+				json.NewEncoder(rw).Encode(c)
 				break
 			}
 		}
@@ -95,14 +95,14 @@ func proxyHandler(config Config) http.Handler {
 
 		reqDump, err := dumpRequest(req)
 		if err != nil {
-			fmt.Printf("Could not dump request: %v\n", err)
+			fmt.Printf("could not dump request: %v\n", err)
 		}
 
 		proxy := httputil.NewSingleHostReverseProxy(url)
 		proxy.ModifyResponse = func(res *http.Response) error {
 			resDump, err := dumpResponse(res)
 			if err != nil {
-				return fmt.Errorf("Could not dump response: %v", err)
+				return fmt.Errorf("could not dump response: %v", err)
 			}
 			captureID++
 			capture := Capture{
