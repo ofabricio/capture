@@ -1,6 +1,8 @@
 
 **Capture** is a reverse proxy that captures the network traffic and shows it in a dashboard
 
+[![Build Status](https://travis-ci.com/ofabricio/capture.svg?branch=master)](https://travis-ci.com/ofabricio/capture)
+
 
 ## Binaries / Executables
 
