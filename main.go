@@ -12,6 +12,7 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
+	"sync"
 
 	"github.com/googollee/go-socket.io"
 )
@@ -88,6 +89,7 @@ func dashboardItemInfoHandler() http.Handler {
 func proxyHandler(config Config) http.Handler {
 	url, _ := url.Parse(config.TargetURL)
 	captureID := 0
+	mux := sync.Mutex{}
 	return http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
 		req.Host = url.Host
 		req.URL.Host = url.Host
@@ -104,6 +106,7 @@ func proxyHandler(config Config) http.Handler {
 			if err != nil {
 				return fmt.Errorf("could not dump response: %v", err)
 			}
+			mux.Lock()
 			captureID++
 			capture := Capture{
 				ID:       captureID,
@@ -115,6 +118,7 @@ func proxyHandler(config Config) http.Handler {
 			}
 			captures.Add(capture)
 			captures.RemoveLastAfterReaching(config.MaxCaptures)
+			mux.Unlock()
 			emitToDashboard(captures)
 			return nil
 		}

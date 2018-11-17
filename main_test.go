@@ -6,10 +6,14 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"math/rand"
 	"net/http"
 	"net/http/httptest"
+	"sort"
 	"strings"
+	"sync"
 	"testing"
+	"time"
 )
 
 // Test the reverse proxy handler
@@ -149,6 +153,48 @@ func TestDumpResponseGzip(t *testing.T) {
 	}
 	if !strings.Contains(string(body), msg) {
 		t.Error("Not hello")
+	}
+}
+
+func TestCaptureIDConcurrence(t *testing.T) {
+
+	// This test bothers me
+
+	interactions := 1000
+
+	// Startup servers
+	service := httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
+		time.Sleep(time.Duration(rand.Intn(1000)) * time.Millisecond)
+		rw.WriteHeader(http.StatusOK)
+	}))
+	capture := httptest.NewServer(proxyHandler(Config{TargetURL: service.URL, MaxCaptures: interactions}))
+	defer service.Close()
+	defer capture.Close()
+
+	// Starts go routines so that captureID is incremented concurrently within proxyHandler()
+	wg := &sync.WaitGroup{}
+	wg.Add(interactions)
+	for i := 0; i < interactions; i++ {
+		go func() {
+			_, err := http.Get(capture.URL)
+			if err != nil {
+				t.Errorf("Request Failed: %v", err)
+			}
+			wg.Done()
+		}()
+	}
+	wg.Wait()
+
+	// Tests if captures IDs are sequential
+	ids := make([]int, len(captures))
+	for i := 0; i < len(captures); i++ {
+		ids[i] = captures[i].ID
+	}
+	sort.Ints(ids)
+	for i := 0; i < len(captures); i++ {
+		if ids[i] != i+1 {
+			t.Fatalf("Capture IDs are not sequential")
+		}
 	}
 }
 
