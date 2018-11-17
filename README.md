@@ -49,12 +49,14 @@ Manually:
 
     git clone https://github.com/ofabricio/capture.git
     cd capture
-    go get -d ./...
     go build -o capture .
 
 Via docker:
 
     git clone https://github.com/ofabricio/capture.git
     cd capture
-    docker build -t capture .
-    docker run --rm -v "${PWD}:/src" -e "OS=linux" capture
+    docker run --rm -v "${PWD}:/src" -w /src -e GOOS=darwin -e GOARCH=386 golang:latest go build -ldflags="-s -w" -o capture .
+
+Now you have an executable binary in your folder
+
+*Note:* you can change `GOOS=darwin` to _linux_ or _windows_
