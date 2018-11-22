@@ -1,5 +1,26 @@
 package main
 
+import (
+	"strconv"
+	"sync"
+)
+
+var captureID int
+var captures CaptureList
+
+type CaptureRepository interface {
+	Insert(capture Capture)
+	RemoveAll()
+	Find(captureID string) *Capture
+	FindAll() []Capture
+}
+
+type CaptureList struct {
+	items    []Capture
+	mux      sync.Mutex
+	maxItems int
+}
+
 type Capture struct {
 	ID       int    `json:"id"`
 	Path     string `json:"path"`
@@ -16,27 +37,54 @@ type CaptureMetadata struct {
 	Status int    `json:"status"`
 }
 
-type Captures []Capture
-
-func (items *Captures) Add(capture Capture) {
-	*items = append(*items, capture)
-}
-
-func (items *Captures) RemoveLastAfterReaching(maxItems int) {
-	if len(*items) > maxItems {
-		*items = (*items)[1:]
+func (c *Capture) Metadata() CaptureMetadata {
+	return CaptureMetadata{
+		ID:     c.ID,
+		Path:   c.Path,
+		Method: c.Method,
+		Status: c.Status,
 	}
 }
 
-func (items *Captures) MetadataOnly() []CaptureMetadata {
-	refs := make([]CaptureMetadata, len(*items))
-	for i, item := range *items {
-		refs[i] = CaptureMetadata{
-			ID:     item.ID,
-			Path:   item.Path,
-			Method: item.Method,
-			Status: item.Status,
+func NewCapturesRepository(maxItems int) CaptureRepository {
+	return &CaptureList{
+		maxItems: maxItems,
+	}
+}
+
+func (c *CaptureList) Insert(capture Capture) {
+	c.mux.Lock()
+	defer c.mux.Unlock()
+	capture.ID = newID()
+	c.items = append(c.items, capture)
+	if len(c.items) > c.maxItems {
+		c.items = c.items[1:]
+	}
+}
+
+func (c *CaptureList) Find(captureID string) *Capture {
+	c.mux.Lock()
+	defer c.mux.Unlock()
+	idInt, _ := strconv.Atoi(captureID)
+	for _, c := range c.items {
+		if c.ID == idInt {
+			return &c
 		}
 	}
-	return refs
+	return nil
+}
+
+func (c *CaptureList) RemoveAll() {
+	c.mux.Lock()
+	defer c.mux.Unlock()
+	c.items = nil
+}
+
+func (c *CaptureList) FindAll() []Capture {
+	return c.items
+}
+
+func newID() int {
+	captureID++
+	return captureID
 }

@@ -18,6 +18,7 @@ import (
 
 // Test the reverse proxy handler
 func TestProxyHandler(t *testing.T) {
+	// given
 	tt := []TestCase{
 		GetRequest(),
 		PostRequest(),
@@ -25,10 +26,12 @@ func TestProxyHandler(t *testing.T) {
 	for _, tc := range tt {
 		t.Run(tc.name, func(t *testing.T) {
 			service := httptest.NewServer(http.HandlerFunc(tc.service))
-			capture := httptest.NewServer(proxyHandler(Config{TargetURL: service.URL}))
+			capture := httptest.NewServer(proxyHandler(service.URL))
 
+			// when
 			resp := tc.request(capture.URL)
 
+			// then
 			tc.test(t, resp)
 
 			resp.Body.Close()
@@ -88,13 +91,16 @@ func PostRequest() TestCase {
 func TestDumpRequest(t *testing.T) {
 	msg := "hello"
 
+	// given
 	req, err := http.NewRequest(http.MethodPost, "http://localhost:9000/", strings.NewReader(msg))
 	if err != nil {
 		t.Errorf("Could not create request: %v", err)
 	}
 
+	// when
 	body, err := dumpRequest(req)
 
+	// then
 	if err != nil {
 		t.Errorf("Dump Request error: %v", err)
 	}
@@ -106,14 +112,17 @@ func TestDumpRequest(t *testing.T) {
 func TestDumpRequestGzip(t *testing.T) {
 	msg := "hello"
 
+	// given
 	req, err := http.NewRequest(http.MethodPost, "http://localhost:9000/", strings.NewReader(gzipStr(msg)))
 	req.Header.Set("Content-Encoding", "gzip")
 	if err != nil {
 		t.Errorf("Could not create request: %v", err)
 	}
 
+	// when
 	body, err := dumpRequest(req)
 
+	// then
 	if err != nil {
 		t.Errorf("Dump Request Gzip error: %v", err)
 	}
@@ -125,10 +134,13 @@ func TestDumpRequestGzip(t *testing.T) {
 func TestDumpResponse(t *testing.T) {
 	msg := "hello"
 
+	// given
 	res := &http.Response{Body: ioutil.NopCloser(strings.NewReader(msg))}
 
+	// when
 	body, err := dumpResponse(res)
 
+	// then
 	if err != nil {
 		t.Errorf("Dump Response Error: %v", err)
 	}
@@ -140,14 +152,15 @@ func TestDumpResponse(t *testing.T) {
 func TestDumpResponseGzip(t *testing.T) {
 	msg := "hello"
 
-	// make a response
+	// given
 	h := make(http.Header)
 	h.Set("Content-Encoding", "gzip")
 	res := &http.Response{Header: h, Body: ioutil.NopCloser(strings.NewReader(gzipStr(msg)))}
 
-	// dump it
+	// when
 	body, err := dumpResponse(res)
 
+	// then
 	if err != nil {
 		t.Errorf("Dump Response error: %v", err)
 	}
@@ -160,16 +173,20 @@ func TestCaptureIDConcurrence(t *testing.T) {
 
 	// This test bothers me
 
+	// given
+
 	interactions := 1000
 
-	// Startup servers
 	service := httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
 		time.Sleep(time.Duration(rand.Intn(1000)) * time.Millisecond)
 		rw.WriteHeader(http.StatusOK)
 	}))
-	capture := httptest.NewServer(proxyHandler(Config{TargetURL: service.URL, MaxCaptures: interactions}))
+	repo := NewCapturesRepository(interactions)
+	capture := httptest.NewServer(NewRecorder(repo, proxyHandler(service.URL)))
 	defer service.Close()
 	defer capture.Close()
+
+	// when
 
 	// Starts go routines so that captureID is incremented concurrently within proxyHandler()
 	wg := &sync.WaitGroup{}
@@ -178,14 +195,20 @@ func TestCaptureIDConcurrence(t *testing.T) {
 		go func() {
 			_, err := http.Get(capture.URL)
 			if err != nil {
-				t.Errorf("Request Failed: %v", err)
+				t.Fatalf("Request Failed: %v", err)
 			}
 			wg.Done()
 		}()
 	}
 	wg.Wait()
 
+	// then
+
 	// Tests if captures IDs are sequential
+	captures := repo.FindAll()
+	if len(captures) == 0 {
+		t.Fatalf("No captures found")
+	}
 	ids := make([]int, len(captures))
 	for i := 0; i < len(captures); i++ {
 		ids[i] = captures[i].ID
