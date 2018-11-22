@@ -26,7 +26,7 @@ func TestProxyHandler(t *testing.T) {
 	for _, tc := range tt {
 		t.Run(tc.name, func(t *testing.T) {
 			service := httptest.NewServer(http.HandlerFunc(tc.service))
-			capture := httptest.NewServer(proxyHandler(service.URL))
+			capture := httptest.NewServer(NewProxyHandler(service.URL))
 
 			// when
 			resp := tc.request(capture.URL)
@@ -182,13 +182,13 @@ func TestCaptureIDConcurrence(t *testing.T) {
 		rw.WriteHeader(http.StatusOK)
 	}))
 	repo := NewCapturesRepository(interactions)
-	capture := httptest.NewServer(NewRecorder(repo, proxyHandler(service.URL)))
+	capture := httptest.NewServer(NewRecorder(repo, NewProxyHandler(service.URL)))
 	defer service.Close()
 	defer capture.Close()
 
 	// when
 
-	// Starts go routines so that captureID is incremented concurrently within proxyHandler()
+	// Starts go routines so that captureID is incremented concurrently within NewProxyHandler()
 	wg := &sync.WaitGroup{}
 	wg.Add(interactions)
 	for i := 0; i < interactions; i++ {

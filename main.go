@@ -27,11 +27,11 @@ func startCapture(config Config) {
 
 	repo := NewCapturesRepository(config.MaxCaptures)
 
-	http.Handle("/", NewRecorder(repo, proxyHandler(config.TargetURL)))
-	http.Handle("/socket.io/", dashboardSocketHandler(repo, config))
-	http.Handle(config.DashboardPath, dashboardHandler())
-	http.Handle(config.DashboardClearPath, dashboardClearHandler(repo))
-	http.Handle(config.DashboardItemInfoPath, dashboardItemInfoHandler(repo))
+	http.Handle("/", NewRecorder(repo, NewProxyHandler(config.TargetURL)))
+	http.Handle(config.DashboardPath, NewDashboardHtmlHandler())
+	http.Handle(config.DashboardClearPath, NewDashboardClearHandler(repo))
+	http.Handle(config.DashboardItemInfoPath, NewDashboardItemInfoHandler(repo))
+	http.Handle(config.DashboardConnPath, NewDashboardSocketHandler(repo, config))
 
 	captureHost := fmt.Sprintf("http://localhost:%s", config.ProxyPort)
 
@@ -41,7 +41,7 @@ func startCapture(config Config) {
 	fmt.Println(http.ListenAndServe(":"+config.ProxyPort, nil))
 }
 
-func dashboardSocketHandler(repo CaptureRepository, config Config) http.Handler {
+func NewDashboardSocketHandler(repo CaptureRepository, config Config) http.Handler {
 	server, err := socketio.NewServer(nil)
 	if err != nil {
 		fmt.Printf("socket server error: %v\n", err)
@@ -57,7 +57,7 @@ func dashboardSocketHandler(repo CaptureRepository, config Config) http.Handler 
 	return server
 }
 
-func dashboardClearHandler(repo CaptureRepository) http.Handler {
+func NewDashboardClearHandler(repo CaptureRepository) http.Handler {
 	return http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
 		repo.RemoveAll()
 		emitToDashboard(nil)
@@ -65,14 +65,14 @@ func dashboardClearHandler(repo CaptureRepository) http.Handler {
 	})
 }
 
-func dashboardHandler() http.Handler {
+func NewDashboardHtmlHandler() http.Handler {
 	return http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
 		rw.Header().Add("Content-Type", "text/html")
 		fmt.Fprint(rw, dashboardHTML)
 	})
 }
 
-func dashboardItemInfoHandler(repo CaptureRepository) http.Handler {
+func NewDashboardItemInfoHandler(repo CaptureRepository) http.Handler {
 	return http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
 		id := req.URL.Path[strings.LastIndex(req.URL.Path, "/")+1:]
 		capture := repo.Find(id)
@@ -119,7 +119,7 @@ func NewRecorder(repo CaptureRepository, next http.Handler) http.Handler {
 	})
 }
 
-func proxyHandler(URL string) http.Handler {
+func NewProxyHandler(URL string) http.Handler {
 	url, _ := url.Parse(URL)
 	proxy := httputil.NewSingleHostReverseProxy(url)
 	proxy.ErrorHandler = func(rw http.ResponseWriter, req *http.Request, err error) {
