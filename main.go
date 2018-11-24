@@ -82,7 +82,7 @@ func NewDashboardItemInfoHandler(repo CaptureRepository) http.Handler {
 			return
 		}
 		rw.Header().Add("Content-Type", "application/json")
-		json.NewEncoder(rw).Encode(capture)
+		json.NewEncoder(rw).Encode(dump(capture))
 	})
 }
 
@@ -109,34 +109,26 @@ func NewPlugin(next http.Handler) http.Handler {
 
 func NewRecorder(repo CaptureRepository, next http.Handler) http.Handler {
 	return http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
-		reqDump, err := dumpRequest(req)
-		if err != nil {
-			fmt.Printf("could not dump request: %v\n", err)
-		}
+
+		// save req body for later
+		var reqBody []byte
+		req.Body, reqBody = drain(req.Body)
 
 		rec := httptest.NewRecorder()
 
 		next.ServeHTTP(rec, req)
 
+		// respond
 		for k, v := range rec.HeaderMap {
 			rw.Header()[k] = v
 		}
 		rw.WriteHeader(rec.Code)
 		rw.Write(rec.Body.Bytes())
 
+		// record req and res
+		req.Body = ioutil.NopCloser(bytes.NewReader(reqBody))
 		res := rec.Result()
-		resDump, err := dumpResponse(res)
-		if err != nil {
-			fmt.Printf("could not dump response: %v\n", err)
-		}
-		capture := Capture{
-			Path:     req.URL.Path,
-			Method:   req.Method,
-			Status:   res.StatusCode,
-			Request:  string(reqDump),
-			Response: string(resDump),
-		}
-		repo.Insert(capture)
+		repo.Insert(Capture{Req: req, Res: res})
 		emitToDashboard(repo.FindAll())
 	})
 }
@@ -153,6 +145,18 @@ func NewProxyHandler(URL string) http.Handler {
 		req.URL.Scheme = url.Scheme
 		proxy.ServeHTTP(rw, req)
 	})
+}
+
+func dump(c *Capture) CaptureDump {
+	reqDump, err := dumpRequest(c.Req)
+	if err != nil {
+		fmt.Printf("could not dump request: %v\n", err)
+	}
+	resDump, err := dumpResponse(c.Res)
+	if err != nil {
+		fmt.Printf("could not dump response: %v\n", err)
+	}
+	return CaptureDump{Request: string(reqDump), Response: string(resDump)}
 }
 
 func dumpRequest(req *http.Request) ([]byte, error) {

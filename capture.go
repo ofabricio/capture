@@ -1,6 +1,7 @@
 package main
 
 import (
+	"net/http"
 	"strconv"
 	"sync"
 )
@@ -22,12 +23,9 @@ type CaptureList struct {
 }
 
 type Capture struct {
-	ID       int    `json:"id"`
-	Path     string `json:"path"`
-	Method   string `json:"method"`
-	Status   int    `json:"status"`
-	Request  string `json:"request"`
-	Response string `json:"response"`
+	ID  int
+	Req *http.Request
+	Res *http.Response
 }
 
 type CaptureMetadata struct {
@@ -37,12 +35,17 @@ type CaptureMetadata struct {
 	Status int    `json:"status"`
 }
 
+type CaptureDump struct {
+	Request  string `json:"request"`
+	Response string `json:"response"`
+}
+
 func (c *Capture) Metadata() CaptureMetadata {
 	return CaptureMetadata{
 		ID:     c.ID,
-		Path:   c.Path,
-		Method: c.Method,
-		Status: c.Status,
+		Path:   c.Req.URL.Path,
+		Method: c.Req.Method,
+		Status: c.Res.StatusCode,
 	}
 }
 
