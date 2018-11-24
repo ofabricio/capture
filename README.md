@@ -61,4 +61,4 @@ Via docker:
 
 Now you have an executable binary in your folder
 
-*Note:* you can change `GOOS=darwin` to _linux_ or _windows_
+**Note:** you can change `GOOS=darwin` to `linux` or `windows`
