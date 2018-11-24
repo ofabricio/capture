@@ -193,6 +193,7 @@ const dashboardHTML = `
     <div class="req">
         <div class="controls">
             <button ng-disabled="!canPrettifyBody('request')" ng-click="prettifyBody('request')">prettify</button>
+            <button ng-disabled="!canGenerateCurl()" ng-click="generateCurl()">curl</button>
         </div>
         <div class="req-inner">
             <pre>{{request}}</pre>
@@ -225,6 +226,7 @@ const dashboardHTML = `
                 $http.get(path).then(r => {
                     $scope.request  = r.data.request;
                     $scope.response = r.data.response;
+                    $scope.curl = r.data.curl;
                 });
             }
 
@@ -250,6 +252,19 @@ const dashboardHTML = `
                     return false;
                 }
                 return $scope[name].indexOf('Content-Type: application/json') != -1;
+            }
+
+            $scope.canGenerateCurl = () => {
+                return $scope['request'] != null;
+            }
+
+            $scope.generateCurl = () => {
+                let e = document.createElement('textarea');
+                e.value = $scope.curl;
+                document.body.appendChild(e);
+                e.select();
+                document.execCommand('copy');
+                document.body.removeChild(e);
             }
 
             $scope.prettifyBody = key => {

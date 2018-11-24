@@ -38,6 +38,7 @@ type CaptureMetadata struct {
 type CaptureDump struct {
 	Request  string `json:"request"`
 	Response string `json:"response"`
+	Curl     string `json:"curl"`
 }
 
 func (c *Capture) Metadata() CaptureMetadata {

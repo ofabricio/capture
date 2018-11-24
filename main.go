@@ -15,6 +15,7 @@ import (
 	"strings"
 
 	"github.com/googollee/go-socket.io"
+	"github.com/ofabricio/curl"
 )
 
 var dashboardSocket socketio.Socket
@@ -156,7 +157,11 @@ func dump(c *Capture) CaptureDump {
 	if err != nil {
 		fmt.Printf("could not dump response: %v\n", err)
 	}
-	return CaptureDump{Request: string(reqDump), Response: string(resDump)}
+	strcurl, err := curl.New(c.Req)
+	if err != nil {
+		fmt.Printf("could not convert request to curl: %v\n", err)
+	}
+	return CaptureDump{Request: string(reqDump), Response: string(resDump), Curl: strcurl}
 }
 
 func dumpRequest(req *http.Request) ([]byte, error) {
