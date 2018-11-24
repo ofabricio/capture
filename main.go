@@ -11,6 +11,7 @@ import (
 	"net/http/httptest"
 	"net/http/httputil"
 	"net/url"
+	"plugin"
 	"strings"
 
 	"github.com/googollee/go-socket.io"
@@ -27,7 +28,7 @@ func startCapture(config Config) {
 
 	repo := NewCapturesRepository(config.MaxCaptures)
 
-	http.Handle("/", NewRecorder(repo, NewProxyHandler(config.TargetURL)))
+	http.Handle("/", NewPlugin(NewRecorder(repo, NewProxyHandler(config.TargetURL))))
 	http.Handle(config.DashboardPath, NewDashboardHtmlHandler())
 	http.Handle(config.DashboardClearPath, NewDashboardClearHandler(repo))
 	http.Handle(config.DashboardItemInfoPath, NewDashboardItemInfoHandler(repo))
@@ -83,6 +84,27 @@ func NewDashboardItemInfoHandler(repo CaptureRepository) http.Handler {
 		rw.Header().Add("Content-Type", "application/json")
 		json.NewEncoder(rw).Encode(capture)
 	})
+}
+
+func NewPlugin(next http.Handler) http.Handler {
+	p, err := plugin.Open("plugin.so")
+	if err != nil {
+		if strings.HasPrefix(err.Error(), "plugin.Open") {
+			fmt.Printf("error: could not open plugin file 'plugin.so': %v\n", err)
+		}
+		return next
+	}
+	f, err := p.Lookup("Handler")
+	if err != nil {
+		fmt.Printf("error: could not find plugin Handler function %v\n", err)
+		return next
+	}
+	pluginFn, ok := f.(func(http.Handler) http.Handler)
+	if !ok {
+		fmt.Println("error: plugin Handler function should be 'func(http.Handler) http.Handler'")
+		return next
+	}
+	return pluginFn(next)
 }
 
 func NewRecorder(repo CaptureRepository, next http.Handler) http.Handler {
