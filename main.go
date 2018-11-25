@@ -27,10 +27,13 @@ func startCapture(config Config) {
 
 	list := NewCaptureList(config.MaxCaptures)
 
-	http.Handle("/", NewPlugin(NewRecorder(list, NewProxyHandler(config.TargetURL))))
+	handler := NewPlugin(NewRecorder(list, NewProxyHandler(config.TargetURL)))
+
+	http.Handle("/", handler)
 	http.Handle(config.DashboardPath, NewDashboardHtmlHandler(config))
 	http.Handle(config.DashboardConnPath, NewDashboardConnHandler(list))
 	http.Handle(config.DashboardClearPath, NewDashboardClearHandler(list))
+	http.Handle(config.DashboardRetryPath, NewDashboardRetryHandler(list, handler))
 	http.Handle(config.DashboardItemInfoPath, NewDashboardItemInfoHandler(list))
 
 	captureHost := fmt.Sprintf("http://localhost:%s", config.ProxyPort)
@@ -86,6 +89,23 @@ func NewDashboardHtmlHandler(config Config) http.Handler {
 			return
 		}
 		t.Execute(rw, config)
+	})
+}
+
+func NewDashboardRetryHandler(list *CaptureList, next http.Handler) http.Handler {
+	return http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
+		id := req.URL.Path[strings.LastIndex(req.URL.Path, "/")+1:]
+		capture := list.Find(id)
+		if capture == nil {
+			http.Error(rw, "Item Not Found", http.StatusNotFound)
+			return
+		}
+		var reqBody []byte
+		capture.Req.Body, reqBody = drain(capture.Req.Body)
+		r, _ := http.NewRequest(capture.Req.Method, capture.Req.URL.String(), capture.Req.Body)
+		r.Header = capture.Req.Header
+		next.ServeHTTP(rw, r)
+		capture.Req.Body = ioutil.NopCloser(bytes.NewReader(reqBody))
 	})
 }
 

@@ -192,7 +192,8 @@ const dashboardHTML = `
     <div class="req">
         <div class="controls">
             <button ng-disabled="!canPrettifyBody('request')" ng-click="prettifyBody('request')">prettify</button>
-            <button ng-disabled="!canGenerateCurl()" ng-click="generateCurl()">curl</button>
+            <button ng-disabled="selectedId == null" ng-click="copyCurl()">curl</button>
+            <button ng-disabled="selectedId == null" ng-click="retry()">retry</button>
         </div>
         <div class="req-inner">
             <pre>{{request}}</pre>
@@ -239,7 +240,9 @@ const dashboardHTML = `
             }
 
             $scope.clearDashboard = () => {
-                $http.get(<<.DashboardClearPath>>).then(clearRequestAndResponse);
+                $http.get(<<.DashboardClearPath>>)
+                    .then(clearRequestAndResponse)
+                    .then(() => $scope.selectedId = null);
             }
 
             function clearRequestAndResponse() {
@@ -253,17 +256,17 @@ const dashboardHTML = `
                 return $scope[name].indexOf('Content-Type: application/json') != -1;
             }
 
-            $scope.canGenerateCurl = () => {
-                return $scope['request'] != null;
-            }
-
-            $scope.generateCurl = () => {
+            $scope.copyCurl = () => {
                 let e = document.createElement('textarea');
                 e.value = $scope.curl;
                 document.body.appendChild(e);
                 e.select();
                 document.execCommand('copy');
                 document.body.removeChild(e);
+            }
+
+            $scope.retry = () => {
+                $http.get(<<.DashboardRetryPath>> + $scope.selectedId);
             }
 
             $scope.prettifyBody = key => {

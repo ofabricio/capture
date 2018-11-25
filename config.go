@@ -13,6 +13,7 @@ type Config struct {
 	DashboardPath         string `json:"dashboardPath"`
 	DashboardConnPath     string `json:"dashboardConnPath"`
 	DashboardClearPath    string `json:"dashboardClearPath"`
+	DashboardRetryPath    string `json:"dashboardRetryPath"`
 	DashboardItemInfoPath string `json:"dashboardItemInfoPath"`
 }
 
@@ -26,6 +27,7 @@ func ReadConfig() Config {
 	dashboardPath := fmt.Sprintf("/%s/", *dashboard)
 	dashboardConnPath := fmt.Sprintf("/%s/conn/", *dashboard)
 	dashboardClearPath := fmt.Sprintf("/%s/clear/", *dashboard)
+	dashboardRetryPath := fmt.Sprintf("/%s/retry/", *dashboard)
 	dashboardItemInfoPath := fmt.Sprintf("/%s/items/", *dashboard)
 
 	return Config{
@@ -36,6 +38,7 @@ func ReadConfig() Config {
 		DashboardPath:         dashboardPath,
 		DashboardConnPath:     dashboardConnPath,
 		DashboardClearPath:    dashboardClearPath,
+		DashboardRetryPath:    dashboardRetryPath,
 		DashboardItemInfoPath: dashboardItemInfoPath,
 	}
 }
