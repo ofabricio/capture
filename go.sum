@@ -1,8 +1,2 @@
-github.com/googollee/go-engine.io v0.0.0-20180829091931-e2f255711dcb h1:n22Aukg/TjoypWc37dbKIpCsz0VMFPD36HQk1WKvg3A=
-github.com/googollee/go-engine.io v0.0.0-20180829091931-e2f255711dcb/go.mod h1:MBpz1MS3P4HtRcBpQU4HcjvWXZ9q+JWacMEh2/BFYbg=
-github.com/googollee/go-socket.io v0.0.0-20181101151912-c8aeb1ed9b49 h1:vKXGRzlhWE9TUVhLqAOcgQbfYvReAnsvQQIcnvWMfcg=
-github.com/googollee/go-socket.io v0.0.0-20181101151912-c8aeb1ed9b49/go.mod h1:ftBGBMhSYToR5oV4ImIPKvAIsNaTkLC+tTvoNafqxlQ=
-github.com/gorilla/websocket v1.4.0 h1:WDFjx/TMzVgy9VdMMQi2K2Emtwi2QcUQsztZ/zLaH/Q=
-github.com/gorilla/websocket v1.4.0/go.mod h1:E7qHFY5m1UJ88s3WnNqhKjPHQ0heANvMoAMk2YaljkQ=
 github.com/ofabricio/curl v0.1.0 h1:ntXuBULZLQmCdAMxZNXzse069DbAKb/Flxe/2uuZuNk=
 github.com/ofabricio/curl v0.1.0/go.mod h1:RtLkZIOgxjm+l0jdj04lrETzu8u5SmPPdLyGAuC4ukg=

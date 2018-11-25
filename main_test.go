@@ -181,8 +181,8 @@ func TestCaptureIDConcurrence(t *testing.T) {
 		time.Sleep(time.Duration(rand.Intn(1000)) * time.Millisecond)
 		rw.WriteHeader(http.StatusOK)
 	}))
-	repo := NewCapturesRepository(interactions)
-	capture := httptest.NewServer(NewRecorder(repo, NewProxyHandler(service.URL)))
+	list := NewCaptureList(interactions)
+	capture := httptest.NewServer(NewRecorder(list, NewProxyHandler(service.URL)))
 	defer service.Close()
 	defer capture.Close()
 
@@ -205,7 +205,7 @@ func TestCaptureIDConcurrence(t *testing.T) {
 	// then
 
 	// Tests if captures IDs are sequential
-	captures := repo.FindAll()
+	captures := list.Items()
 	if len(captures) == 0 {
 		t.Fatalf("No captures found")
 	}

@@ -9,17 +9,12 @@ import (
 var captureID int
 var captures CaptureList
 
-type CaptureRepository interface {
-	Insert(capture Capture)
-	RemoveAll()
-	Find(captureID string) *Capture
-	FindAll() []Capture
-}
-
 type CaptureList struct {
 	items    []Capture
 	mux      sync.Mutex
 	maxItems int
+	// signals any change in "items"
+	Updated chan struct{}
 }
 
 type Capture struct {
@@ -50,9 +45,10 @@ func (c *Capture) Metadata() CaptureMetadata {
 	}
 }
 
-func NewCapturesRepository(maxItems int) CaptureRepository {
+func NewCaptureList(maxItems int) *CaptureList {
 	return &CaptureList{
 		maxItems: maxItems,
+		Updated:  make(chan struct{}),
 	}
 }
 
@@ -64,6 +60,7 @@ func (c *CaptureList) Insert(capture Capture) {
 	if len(c.items) > c.maxItems {
 		c.items = c.items[1:]
 	}
+	c.signalsItemsChange()
 }
 
 func (c *CaptureList) Find(captureID string) *Capture {
@@ -82,13 +79,31 @@ func (c *CaptureList) RemoveAll() {
 	c.mux.Lock()
 	defer c.mux.Unlock()
 	c.items = nil
+	c.signalsItemsChange()
 }
 
-func (c *CaptureList) FindAll() []Capture {
+func (c *CaptureList) Items() []Capture {
 	return c.items
+}
+
+func (c *CaptureList) ItemsAsMetadata() []CaptureMetadata {
+	c.mux.Lock()
+	defer c.mux.Unlock()
+	metadatas := make([]CaptureMetadata, len(c.items))
+	for i, capture := range c.items {
+		metadatas[i] = capture.Metadata()
+	}
+	return metadatas
 }
 
 func newID() int {
 	captureID++
 	return captureID
+}
+
+func (c *CaptureList) signalsItemsChange() {
+	select {
+	case c.Updated <- struct{}{}:
+	default:
+	}
 }

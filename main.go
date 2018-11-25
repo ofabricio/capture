@@ -5,6 +5,7 @@ import (
 	"compress/gzip"
 	"encoding/json"
 	"fmt"
+	"html/template"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -14,11 +15,8 @@ import (
 	"plugin"
 	"strings"
 
-	"github.com/googollee/go-socket.io"
 	"github.com/ofabricio/curl"
 )
-
-var dashboardSocket socketio.Socket
 
 func main() {
 	config := ReadConfig()
@@ -27,13 +25,13 @@ func main() {
 
 func startCapture(config Config) {
 
-	repo := NewCapturesRepository(config.MaxCaptures)
+	list := NewCaptureList(config.MaxCaptures)
 
-	http.Handle("/", NewPlugin(NewRecorder(repo, NewProxyHandler(config.TargetURL))))
-	http.Handle(config.DashboardPath, NewDashboardHtmlHandler())
-	http.Handle(config.DashboardClearPath, NewDashboardClearHandler(repo))
-	http.Handle(config.DashboardItemInfoPath, NewDashboardItemInfoHandler(repo))
-	http.Handle(config.DashboardConnPath, NewDashboardSocketHandler(repo, config))
+	http.Handle("/", NewPlugin(NewRecorder(list, NewProxyHandler(config.TargetURL))))
+	http.Handle(config.DashboardPath, NewDashboardHtmlHandler(config))
+	http.Handle(config.DashboardConnPath, NewDashboardConnHandler(list))
+	http.Handle(config.DashboardClearPath, NewDashboardClearHandler(list))
+	http.Handle(config.DashboardItemInfoPath, NewDashboardItemInfoHandler(list))
 
 	captureHost := fmt.Sprintf("http://localhost:%s", config.ProxyPort)
 
@@ -43,41 +41,58 @@ func startCapture(config Config) {
 	fmt.Println(http.ListenAndServe(":"+config.ProxyPort, nil))
 }
 
-func NewDashboardSocketHandler(repo CaptureRepository, config Config) http.Handler {
-	server, err := socketio.NewServer(nil)
-	if err != nil {
-		fmt.Printf("socket server error: %v\n", err)
-	}
-	server.On("connection", func(so socketio.Socket) {
-		dashboardSocket = so
-		dashboardSocket.Emit("config", config)
-		emitToDashboard(repo.FindAll())
+func NewDashboardConnHandler(list *CaptureList) http.Handler {
+	return http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
+		if _, ok := rw.(http.Flusher); !ok {
+			fmt.Printf("streaming not supported at %s\n", req.URL)
+			http.Error(rw, "streaming not supported", http.StatusInternalServerError)
+			return
+		}
+		rw.Header().Set("Content-Type", "text/event-stream")
+		rw.Header().Set("Cache-Control", "no-cache")
+
+		fmt.Fprintf(rw, "event: connected\ndata: %s\n\n", "clear")
+		rw.(http.Flusher).Flush()
+
+		for {
+			jsn, _ := json.Marshal(list.ItemsAsMetadata())
+			fmt.Fprintf(rw, "event: captures\ndata: %s\n\n", jsn)
+			rw.(http.Flusher).Flush()
+
+			select {
+			case <-list.Updated:
+			case <-req.Context().Done():
+				return
+			}
+		}
 	})
-	server.On("error", func(so socketio.Socket, err error) {
-		fmt.Printf("socket error: %v\n", err)
-	})
-	return server
 }
 
-func NewDashboardClearHandler(repo CaptureRepository) http.Handler {
+func NewDashboardClearHandler(list *CaptureList) http.Handler {
 	return http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
-		repo.RemoveAll()
-		emitToDashboard(nil)
+		list.RemoveAll()
 		rw.WriteHeader(http.StatusOK)
 	})
 }
 
-func NewDashboardHtmlHandler() http.Handler {
+func NewDashboardHtmlHandler(config Config) http.Handler {
 	return http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
 		rw.Header().Add("Content-Type", "text/html")
-		fmt.Fprint(rw, dashboardHTML)
+		t, err := template.New("dashboard template").Delims("<<", ">>").Parse(dashboardHTML)
+		if err != nil {
+			msg := fmt.Sprintf("could not parse dashboard html template: %v", err)
+			fmt.Println(msg)
+			http.Error(rw, msg, http.StatusInternalServerError)
+			return
+		}
+		t.Execute(rw, config)
 	})
 }
 
-func NewDashboardItemInfoHandler(repo CaptureRepository) http.Handler {
+func NewDashboardItemInfoHandler(list *CaptureList) http.Handler {
 	return http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
 		id := req.URL.Path[strings.LastIndex(req.URL.Path, "/")+1:]
-		capture := repo.Find(id)
+		capture := list.Find(id)
 		if capture == nil {
 			http.Error(rw, "Item Not Found", http.StatusNotFound)
 			return
@@ -108,7 +123,7 @@ func NewPlugin(next http.Handler) http.Handler {
 	return pluginFn(next)
 }
 
-func NewRecorder(repo CaptureRepository, next http.Handler) http.Handler {
+func NewRecorder(list *CaptureList, next http.Handler) http.Handler {
 	return http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
 
 		// save req body for later
@@ -129,8 +144,7 @@ func NewRecorder(repo CaptureRepository, next http.Handler) http.Handler {
 		// record req and res
 		req.Body = ioutil.NopCloser(bytes.NewReader(reqBody))
 		res := rec.Result()
-		repo.Insert(Capture{Req: req, Res: res})
-		emitToDashboard(repo.FindAll())
+		list.Insert(Capture{Req: req, Res: res})
 	})
 }
 
@@ -194,15 +208,4 @@ func drain(b io.ReadCloser) (io.ReadCloser, []byte) {
 	all, _ := ioutil.ReadAll(b)
 	b.Close()
 	return ioutil.NopCloser(bytes.NewReader(all)), all
-}
-
-func emitToDashboard(captures []Capture) {
-	if dashboardSocket == nil {
-		return
-	}
-	metadatas := make([]CaptureMetadata, len(captures))
-	for i, capture := range captures {
-		metadatas[i] = capture.Metadata()
-	}
-	dashboardSocket.Emit("captures", metadatas)
 }

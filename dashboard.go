@@ -7,7 +7,6 @@ const dashboardHTML = `
     <meta charset="utf-8">
     <link rel="icon" href="data:;base64,iVBORw0KGgo=">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/angular.js/1.7.2/angular.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.1.1/socket.io.slim.js"></script>
     <link href="https://fonts.googleapis.com/css?family=Inconsolata:400,700" rel="stylesheet">
     <title>Dashboard</title>
     <style>
@@ -210,7 +209,7 @@ const dashboardHTML = `
     </div>
 
     <div class="welcome" ng-show="items.length == 0">
-        Waiting for requests on http://localhost:{{config.proxyPort}}/
+        Waiting for requests on http://localhost:<<.ProxyPort>>/
     </div>
 
 </div>
@@ -222,7 +221,7 @@ const dashboardHTML = `
             $scope.show = item => {
                 $scope.path = item.path;
                 $scope.selectedId = item.id;
-                let path = $scope.config.dashboardItemInfoPath + item.id;
+                let path = <<.DashboardItemInfoPath>> + item.id;
                 $http.get(path).then(r => {
                     $scope.request  = r.data.request;
                     $scope.response = r.data.response;
@@ -240,7 +239,7 @@ const dashboardHTML = `
             }
 
             $scope.clearDashboard = () => {
-                $http.get($scope.config.dashboardClearPath).then(clearRequestAndResponse);
+                $http.get(<<.DashboardClearPath>>).then(clearRequestAndResponse);
             }
 
             function clearRequestAndResponse() {
@@ -276,18 +275,14 @@ const dashboardHTML = `
                 $scope[key] = data.replace(body, prettyBody);
             }
 
-            let socket = io();
-            socket.on('connect', () => {
+            const evt = new EventSource(<<.DashboardConnPath>>);
+            evt.addEventListener('connected', e => {
                 clearRequestAndResponse();
-                socket.off('config');
-                socket.off('captures');
-                socket.on('config', args => {
-                    $scope.config = args;
-                });
-                socket.on('captures', captures => {
-                    $scope.items = captures;
-                    $scope.$apply();
-                });
+                $scope.$apply();
+            });
+            evt.addEventListener('captures', e => {
+                $scope.items = JSON.parse(e.data);
+                $scope.$apply();
             });
         });
 </script>

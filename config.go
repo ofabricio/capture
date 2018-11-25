@@ -23,8 +23,8 @@ func ReadConfig() Config {
 	maxCaptures := flag.Int("max-captures", 16, "Set the max number of captures to show in the dashboard")
 	flag.Parse()
 
-	dashboardConnPath := "/socket.io/"
 	dashboardPath := fmt.Sprintf("/%s/", *dashboard)
+	dashboardConnPath := fmt.Sprintf("/%s/conn/", *dashboard)
 	dashboardClearPath := fmt.Sprintf("/%s/clear/", *dashboard)
 	dashboardItemInfoPath := fmt.Sprintf("/%s/items/", *dashboard)
 
