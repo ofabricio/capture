@@ -159,6 +159,7 @@ const dashboardHTML = `
         position: absolute;
         background: rgba(0, 0, 0, .5);
         justify-content: center;
+        line-height: 1.5rem;
         z-index: 9;
         color: #fff;
         font-size: 2em;
@@ -168,6 +169,10 @@ const dashboardHTML = `
         transform: translate(0%, -50%);
         padding: 3rem;
         box-shadow: 0px 0px 20px 10px rgba(0, 0, 0, 0.1);
+    }
+    .welcome span {
+        font-size: .5em;
+        color: #999;
     }
     </style>
 </head>
@@ -210,7 +215,8 @@ const dashboardHTML = `
     </div>
 
     <div class="welcome" ng-show="items.length == 0">
-        Waiting for requests on http://localhost:<<.ProxyPort>>/
+        <p>Waiting for requests on http://localhost:<<.ProxyPort>>/<br>
+        <span>Proxying <<.TargetURL>></span></p>
     </div>
 
 </div>
