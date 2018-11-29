@@ -287,6 +287,11 @@ const dashboardHTML = `
                 };
                 $scope.$apply();
             });
+            evt.onerror = () => {
+                $scope.items = [];
+                $scope.selectedItem = {};
+                $scope.$apply();
+            };
         });
 </script>
 </body>
