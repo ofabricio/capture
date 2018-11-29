@@ -186,10 +186,10 @@ const dashboardHTML = `
         </div>
         <div class="list-inner">
             <div class="list-item" ng-repeat="item in items | orderBy: '-id' track by $index" ng-click="show(item)"
-                 ng-class="{selected: isItemSelected(item)}">
+                 ng-class="{selected: selectedItem.id == item.id}">
                 <span class="method" ng-class="item.method">{{item.method}}</span>
                 <span class="path">&lrm;{{item.path}}&lrm;</span>
-                <span class="status" ng-class="statusColor(item)">{{item.status}}</span>
+                <span class="status" ng-class="statusColor(item)">{{item.status == 999 ? 'failed' : item.status}}</span>
             </div>
         </div>
     </div>
@@ -197,11 +197,11 @@ const dashboardHTML = `
     <div class="req">
         <div class="controls">
             <button ng-disabled="!canPrettifyBody('request')" ng-click="prettifyBody('request')">prettify</button>
-            <button ng-disabled="selectedId == null" ng-click="copyCurl()">curl</button>
-            <button ng-disabled="selectedId == null" ng-click="retry()">retry</button>
+            <button ng-disabled="selectedItem.id == null" ng-click="copyCurl()">curl</button>
+            <button ng-disabled="selectedItem.id == null" ng-click="retry()">retry</button>
         </div>
         <div class="req-inner">
-            <pre>{{request}}</pre>
+            <pre>{{selectedItem.request}}</pre>
         </div>
     </div>
 
@@ -210,7 +210,7 @@ const dashboardHTML = `
             <button ng-disabled="!canPrettifyBody('response')" ng-click="prettifyBody('response')">prettify</button>
         </div>
         <div class="res-inner">
-            <pre>{{response}}</pre>
+            <pre ng-class="{error: selectedItem.status == 999}">{{selectedItem.response}}</pre>
         </div>
     </div>
 
@@ -225,46 +225,37 @@ const dashboardHTML = `
     angular.module('app', [])
         .controller('controller', function($scope, $http) {
 
+            $scope.selectedItem = {};
+
             $scope.show = item => {
-                $scope.path = item.path;
-                $scope.selectedId = item.id;
-                let path = <<.DashboardItemInfoPath>> + item.id;
-                $http.get(path).then(r => {
-                    $scope.request  = r.data.request;
-                    $scope.response = r.data.response;
-                    $scope.curl = r.data.curl;
+                $scope.selectedItem.id = item.id;
+                $scope.selectedItem.status = item.status;
+                $http.get(<<.DashboardItemInfoPath>> + item.id).then(r => {
+                    $scope.selectedItem.request  = r.data.request;
+                    $scope.selectedItem.response = r.data.response;
+                    $scope.selectedItem.curl = r.data.curl;
                 });
             }
 
             $scope.statusColor = item => {
-                let status = (item.status + '')[0] - 2;
-                return ['ok', 'warn', 'error', 'error'][status] || '';
-            }
-
-            $scope.isItemSelected = item => {
-                return $scope.selectedId == item.id;
+                if (item.status < 300) return 'ok';
+                if (item.status < 400) return 'warn';
+                return 'error';
             }
 
             $scope.clearDashboard = () => {
                 $http.get(<<.DashboardClearPath>>)
-                    .then(clearRequestAndResponse)
-                    .then(() => $scope.selectedId = null);
-            }
-
-            function clearRequestAndResponse() {
-                $scope.request = $scope.response = null;
+                    .then(() => $scope.selectedItem = {});
             }
 
             $scope.canPrettifyBody = name => {
-                if (!$scope[name]) {
-                    return false;
-                }
-                return $scope[name].indexOf('Content-Type: application/json') != -1;
+                if (!$scope.selectedItem[name]) return false;
+                return $scope.selectedItem[name].indexOf('Content-Type: application/json') != -1;
             }
 
             $scope.copyCurl = () => {
                 let e = document.createElement('textarea');
-                e.value = $scope.curl;
+                e.value = $scope.selectedItem.curl;
                 document.body.appendChild(e);
                 e.select();
                 document.execCommand('copy');
@@ -272,25 +263,28 @@ const dashboardHTML = `
             }
 
             $scope.retry = () => {
-                $http.get(<<.DashboardRetryPath>> + $scope.selectedId);
+                $http.get(<<.DashboardRetryPath>> + $scope.selectedItem.id);
             }
 
             $scope.prettifyBody = key => {
                 let regex = /\n([\{\[](.*\s*)*[\}\]])/;
-                let data = $scope[key];
+                let data = $scope.selectedItem[key];
                 let match = regex.exec(data);
                 let body = match[1];
                 let prettyBody = JSON.stringify(JSON.parse(body), null, '    ');
-                $scope[key] = data.replace(body, prettyBody);
+                $scope.selectedItem[key] = data.replace(body, prettyBody);
             }
 
             const evt = new EventSource(<<.DashboardConnPath>>);
             evt.addEventListener('connected', e => {
-                clearRequestAndResponse();
+                $scope.selectedItem = {};
                 $scope.$apply();
             });
             evt.addEventListener('captures', e => {
                 $scope.items = JSON.parse(e.data);
+                if (!$scope.items.find(i => i.id == $scope.selectedItem.id)) {
+                    $scope.selectedItem = {}
+                };
                 $scope.$apply();
             });
         });

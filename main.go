@@ -18,6 +18,9 @@ import (
 	"github.com/ofabricio/curl"
 )
 
+// StatusInternalProxyError is any unknown proxy error
+const StatusInternalProxyError = 999
+
 func main() {
 	config := ReadConfig()
 	startCapture(config)
@@ -173,6 +176,8 @@ func NewProxyHandler(URL string) http.Handler {
 	proxy := httputil.NewSingleHostReverseProxy(url)
 	proxy.ErrorHandler = func(rw http.ResponseWriter, req *http.Request, err error) {
 		fmt.Printf("uh oh | %v | %s %s\n", err, req.Method, req.URL)
+		rw.WriteHeader(StatusInternalProxyError)
+		fmt.Fprintf(rw, "%v", err)
 	}
 	return http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
 		req.Host = url.Host
@@ -212,6 +217,12 @@ func dumpRequest(req *http.Request) ([]byte, error) {
 }
 
 func dumpResponse(res *http.Response) ([]byte, error) {
+	if res.StatusCode == StatusInternalProxyError {
+		// dumps only the body when we have an proxy error
+		var resBody []byte
+		res.Body, resBody = drain(res.Body)
+		return resBody, nil
+	}
 	if res.Header.Get("Content-Encoding") == "gzip" {
 		var resBody []byte
 		res.Body, resBody = drain(res.Body)
