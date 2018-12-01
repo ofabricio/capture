@@ -5,6 +5,7 @@ import (
 	"fmt"
 )
 
+// Config has all the configuration parsed from the command line
 type Config struct {
 	TargetURL             string `json:"targetURL"`
 	ProxyPort             string `json:"proxyPort"`
@@ -17,6 +18,7 @@ type Config struct {
 	DashboardItemInfoPath string `json:"dashboardItemInfoPath"`
 }
 
+// ReadConfig reads the arguments from the command line
 func ReadConfig() Config {
 	targetURL := flag.String("url", "https://jsonplaceholder.typicode.com", "Required. Set the base url you want to capture")
 	proxyPort := flag.String("port", "9000", "Set the proxy port")

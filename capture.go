@@ -9,6 +9,7 @@ import (
 var captureID int
 var captures CaptureList
 
+// CaptureList stores all captures
 type CaptureList struct {
 	items    []Capture
 	mux      sync.Mutex
@@ -17,12 +18,14 @@ type CaptureList struct {
 	Updated chan struct{}
 }
 
+// Capture saves our traffic data
 type Capture struct {
 	ID  int
 	Req *http.Request
 	Res *http.Response
 }
 
+// CaptureMetadata is the data for each list item in the dashboard
 type CaptureMetadata struct {
 	ID     int    `json:"id"`
 	Path   string `json:"path"`
@@ -30,12 +33,14 @@ type CaptureMetadata struct {
 	Status int    `json:"status"`
 }
 
+// CaptureDump saves all the dumps shown in the dashboard
 type CaptureDump struct {
 	Request  string `json:"request"`
 	Response string `json:"response"`
 	Curl     string `json:"curl"`
 }
 
+// Metadata returns the metadada of a capture
 func (c *Capture) Metadata() CaptureMetadata {
 	return CaptureMetadata{
 		ID:     c.ID,
@@ -45,6 +50,7 @@ func (c *Capture) Metadata() CaptureMetadata {
 	}
 }
 
+// NewCaptureList creates a new list of captures
 func NewCaptureList(maxItems int) *CaptureList {
 	return &CaptureList{
 		maxItems: maxItems,
@@ -52,6 +58,7 @@ func NewCaptureList(maxItems int) *CaptureList {
 	}
 }
 
+// Insert adds a new capture
 func (c *CaptureList) Insert(capture Capture) {
 	c.mux.Lock()
 	defer c.mux.Unlock()
@@ -63,6 +70,7 @@ func (c *CaptureList) Insert(capture Capture) {
 	c.signalsItemsChange()
 }
 
+// Find finds a capture by its id
 func (c *CaptureList) Find(captureID string) *Capture {
 	c.mux.Lock()
 	defer c.mux.Unlock()
@@ -75,6 +83,7 @@ func (c *CaptureList) Find(captureID string) *Capture {
 	return nil
 }
 
+// RemoveAll removes all the captures
 func (c *CaptureList) RemoveAll() {
 	c.mux.Lock()
 	defer c.mux.Unlock()
@@ -82,10 +91,12 @@ func (c *CaptureList) RemoveAll() {
 	c.signalsItemsChange()
 }
 
+// Items returns all the captures
 func (c *CaptureList) Items() []Capture {
 	return c.items
 }
 
+// ItemsAsMetadata returns all the captures as metadata
 func (c *CaptureList) ItemsAsMetadata() []CaptureMetadata {
 	c.mux.Lock()
 	defer c.mux.Unlock()

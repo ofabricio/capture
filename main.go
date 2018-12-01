@@ -33,7 +33,7 @@ func startCapture(config Config) {
 	handler := NewPlugin(NewRecorder(list, NewProxyHandler(config.TargetURL)))
 
 	http.HandleFunc("/", handler)
-	http.HandleFunc(config.DashboardPath, NewDashboardHtmlHandler(config))
+	http.HandleFunc(config.DashboardPath, NewDashboardHTMLHandler(config))
 	http.HandleFunc(config.DashboardConnPath, NewDashboardConnHandler(list))
 	http.HandleFunc(config.DashboardClearPath, NewDashboardClearHandler(list))
 	http.HandleFunc(config.DashboardRetryPath, NewDashboardRetryHandler(list, handler))
@@ -47,6 +47,8 @@ func startCapture(config Config) {
 	fmt.Println(http.ListenAndServe(":"+config.ProxyPort, nil))
 }
 
+// NewDashboardConnHandler opens an event stream connection with the dashboard
+// so that it is notified everytime a new capture arrives
 func NewDashboardConnHandler(list *CaptureList) http.HandlerFunc {
 	return func(rw http.ResponseWriter, req *http.Request) {
 		if _, ok := rw.(http.Flusher); !ok {
@@ -74,6 +76,7 @@ func NewDashboardConnHandler(list *CaptureList) http.HandlerFunc {
 	}
 }
 
+// NewDashboardClearHandler clears all the captures
 func NewDashboardClearHandler(list *CaptureList) http.HandlerFunc {
 	return func(rw http.ResponseWriter, req *http.Request) {
 		list.RemoveAll()
@@ -81,7 +84,8 @@ func NewDashboardClearHandler(list *CaptureList) http.HandlerFunc {
 	}
 }
 
-func NewDashboardHtmlHandler(config Config) http.HandlerFunc {
+// NewDashboardHTMLHandler returns the dashboard html page
+func NewDashboardHTMLHandler(config Config) http.HandlerFunc {
 	return func(rw http.ResponseWriter, req *http.Request) {
 		rw.Header().Add("Content-Type", "text/html")
 		t, err := template.New("dashboard template").Delims("<<", ">>").Parse(dashboardHTML)
@@ -95,6 +99,7 @@ func NewDashboardHtmlHandler(config Config) http.HandlerFunc {
 	}
 }
 
+// NewDashboardRetryHandler retries a request
 func NewDashboardRetryHandler(list *CaptureList, next http.HandlerFunc) http.HandlerFunc {
 	return func(rw http.ResponseWriter, req *http.Request) {
 		id := req.URL.Path[strings.LastIndex(req.URL.Path, "/")+1:]
@@ -112,6 +117,7 @@ func NewDashboardRetryHandler(list *CaptureList, next http.HandlerFunc) http.Han
 	}
 }
 
+// NewDashboardItemInfoHandler returns the full capture info
 func NewDashboardItemInfoHandler(list *CaptureList) http.HandlerFunc {
 	return func(rw http.ResponseWriter, req *http.Request) {
 		id := req.URL.Path[strings.LastIndex(req.URL.Path, "/")+1:]
@@ -125,6 +131,7 @@ func NewDashboardItemInfoHandler(list *CaptureList) http.HandlerFunc {
 	}
 }
 
+// NewPlugin setups plugin handler for requests and resposes
 func NewPlugin(next http.HandlerFunc) http.HandlerFunc {
 	p, err := plugin.Open("plugin.so")
 	if err != nil {
@@ -146,6 +153,7 @@ func NewPlugin(next http.HandlerFunc) http.HandlerFunc {
 	return pluginFn(next)
 }
 
+// NewRecorder saves all the traffic data
 func NewRecorder(list *CaptureList, next http.HandlerFunc) http.HandlerFunc {
 	return func(rw http.ResponseWriter, req *http.Request) {
 
@@ -171,6 +179,7 @@ func NewRecorder(list *CaptureList, next http.HandlerFunc) http.HandlerFunc {
 	}
 }
 
+// NewProxyHandler is the reverse proxy handler
 func NewProxyHandler(URL string) http.HandlerFunc {
 	url, _ := url.Parse(URL)
 	proxy := httputil.NewSingleHostReverseProxy(url)
@@ -205,35 +214,47 @@ func dump(c *Capture) CaptureDump {
 
 func dumpRequest(req *http.Request) ([]byte, error) {
 	if req.Header.Get("Content-Encoding") == "gzip" {
-		var reqBody []byte
-		req.Body, reqBody = drain(req.Body)
-		reader, _ := gzip.NewReader(bytes.NewReader(reqBody))
-		req.Body = ioutil.NopCloser(reader)
-		reqDump, err := httputil.DumpRequest(req, true)
-		req.Body = ioutil.NopCloser(bytes.NewReader(reqBody))
-		return reqDump, err
+		return dumpGzipRequest(req)
 	}
 	return httputil.DumpRequest(req, true)
 }
 
+func dumpGzipRequest(req *http.Request) ([]byte, error) {
+	var reqBody []byte
+	req.Body, reqBody = drain(req.Body)
+	reader, _ := gzip.NewReader(bytes.NewReader(reqBody))
+	req.Body = ioutil.NopCloser(reader)
+	reqDump, err := httputil.DumpRequest(req, true)
+	req.Body = ioutil.NopCloser(bytes.NewReader(reqBody))
+	return reqDump, err
+}
+
 func dumpResponse(res *http.Response) ([]byte, error) {
 	if res.StatusCode == StatusInternalProxyError {
-		// dumps only the body when we have an proxy error.
-		// This body is set in NewProxyHandler()
-		var resBody []byte
-		res.Body, resBody = drain(res.Body)
-		return resBody, nil
+		return dumpInternalProxyError(res)
 	}
 	if res.Header.Get("Content-Encoding") == "gzip" {
-		var resBody []byte
-		res.Body, resBody = drain(res.Body)
-		reader, _ := gzip.NewReader(bytes.NewReader(resBody))
-		res.Body = ioutil.NopCloser(reader)
-		resDump, err := httputil.DumpResponse(res, true)
-		res.Body = ioutil.NopCloser(bytes.NewReader(resBody))
-		return resDump, err
+		return dumpGzipResponse(res)
 	}
 	return httputil.DumpResponse(res, true)
+}
+
+// Dumps only the body when we have an proxy error.
+// This body is set in NewProxyHandler() in proxy.ErrorHandler
+func dumpInternalProxyError(res *http.Response) ([]byte, error) {
+	var resBody []byte
+	res.Body, resBody = drain(res.Body)
+	return resBody, nil
+}
+
+func dumpGzipResponse(res *http.Response) ([]byte, error) {
+	var resBody []byte
+	res.Body, resBody = drain(res.Body)
+	reader, _ := gzip.NewReader(bytes.NewReader(resBody))
+	res.Body = ioutil.NopCloser(reader)
+	resDump, err := httputil.DumpResponse(res, true)
+	res.Body = ioutil.NopCloser(bytes.NewReader(resBody))
+	return resDump, err
 }
 
 func drain(b io.ReadCloser) (io.ReadCloser, []byte) {
