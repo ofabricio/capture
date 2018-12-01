@@ -32,12 +32,12 @@ func startCapture(config Config) {
 
 	handler := NewPlugin(NewRecorder(list, NewProxyHandler(config.TargetURL)))
 
-	http.Handle("/", handler)
-	http.Handle(config.DashboardPath, NewDashboardHtmlHandler(config))
-	http.Handle(config.DashboardConnPath, NewDashboardConnHandler(list))
-	http.Handle(config.DashboardClearPath, NewDashboardClearHandler(list))
-	http.Handle(config.DashboardRetryPath, NewDashboardRetryHandler(list, handler))
-	http.Handle(config.DashboardItemInfoPath, NewDashboardItemInfoHandler(list))
+	http.HandleFunc("/", handler)
+	http.HandleFunc(config.DashboardPath, NewDashboardHtmlHandler(config))
+	http.HandleFunc(config.DashboardConnPath, NewDashboardConnHandler(list))
+	http.HandleFunc(config.DashboardClearPath, NewDashboardClearHandler(list))
+	http.HandleFunc(config.DashboardRetryPath, NewDashboardRetryHandler(list, handler))
+	http.HandleFunc(config.DashboardItemInfoPath, NewDashboardItemInfoHandler(list))
 
 	captureHost := fmt.Sprintf("http://localhost:%s", config.ProxyPort)
 
@@ -47,8 +47,8 @@ func startCapture(config Config) {
 	fmt.Println(http.ListenAndServe(":"+config.ProxyPort, nil))
 }
 
-func NewDashboardConnHandler(list *CaptureList) http.Handler {
-	return http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
+func NewDashboardConnHandler(list *CaptureList) http.HandlerFunc {
+	return func(rw http.ResponseWriter, req *http.Request) {
 		if _, ok := rw.(http.Flusher); !ok {
 			fmt.Printf("streaming not supported at %s\n", req.URL)
 			http.Error(rw, "streaming not supported", http.StatusInternalServerError)
@@ -71,18 +71,18 @@ func NewDashboardConnHandler(list *CaptureList) http.Handler {
 				return
 			}
 		}
-	})
+	}
 }
 
-func NewDashboardClearHandler(list *CaptureList) http.Handler {
-	return http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
+func NewDashboardClearHandler(list *CaptureList) http.HandlerFunc {
+	return func(rw http.ResponseWriter, req *http.Request) {
 		list.RemoveAll()
 		rw.WriteHeader(http.StatusOK)
-	})
+	}
 }
 
-func NewDashboardHtmlHandler(config Config) http.Handler {
-	return http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
+func NewDashboardHtmlHandler(config Config) http.HandlerFunc {
+	return func(rw http.ResponseWriter, req *http.Request) {
 		rw.Header().Add("Content-Type", "text/html")
 		t, err := template.New("dashboard template").Delims("<<", ">>").Parse(dashboardHTML)
 		if err != nil {
@@ -92,11 +92,11 @@ func NewDashboardHtmlHandler(config Config) http.Handler {
 			return
 		}
 		t.Execute(rw, config)
-	})
+	}
 }
 
-func NewDashboardRetryHandler(list *CaptureList, next http.Handler) http.Handler {
-	return http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
+func NewDashboardRetryHandler(list *CaptureList, next http.HandlerFunc) http.HandlerFunc {
+	return func(rw http.ResponseWriter, req *http.Request) {
 		id := req.URL.Path[strings.LastIndex(req.URL.Path, "/")+1:]
 		capture := list.Find(id)
 		if capture == nil {
@@ -109,11 +109,11 @@ func NewDashboardRetryHandler(list *CaptureList, next http.Handler) http.Handler
 		r.Header = capture.Req.Header
 		next.ServeHTTP(rw, r)
 		capture.Req.Body = ioutil.NopCloser(bytes.NewReader(reqBody))
-	})
+	}
 }
 
-func NewDashboardItemInfoHandler(list *CaptureList) http.Handler {
-	return http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
+func NewDashboardItemInfoHandler(list *CaptureList) http.HandlerFunc {
+	return func(rw http.ResponseWriter, req *http.Request) {
 		id := req.URL.Path[strings.LastIndex(req.URL.Path, "/")+1:]
 		capture := list.Find(id)
 		if capture == nil {
@@ -122,10 +122,10 @@ func NewDashboardItemInfoHandler(list *CaptureList) http.Handler {
 		}
 		rw.Header().Add("Content-Type", "application/json")
 		json.NewEncoder(rw).Encode(dump(capture))
-	})
+	}
 }
 
-func NewPlugin(next http.Handler) http.Handler {
+func NewPlugin(next http.HandlerFunc) http.HandlerFunc {
 	p, err := plugin.Open("plugin.so")
 	if err != nil {
 		if strings.HasPrefix(err.Error(), "plugin.Open") {
@@ -138,16 +138,16 @@ func NewPlugin(next http.Handler) http.Handler {
 		fmt.Printf("error: could not find plugin Handler function %v\n", err)
 		return next
 	}
-	pluginFn, ok := f.(func(http.Handler) http.Handler)
+	pluginFn, ok := f.(func(http.HandlerFunc) http.HandlerFunc)
 	if !ok {
-		fmt.Println("error: plugin Handler function should be 'func(http.Handler) http.Handler'")
+		fmt.Println("error: plugin Handler function should be 'func(http.HandlerFunc) http.HandlerFunc'")
 		return next
 	}
 	return pluginFn(next)
 }
 
-func NewRecorder(list *CaptureList, next http.Handler) http.Handler {
-	return http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
+func NewRecorder(list *CaptureList, next http.HandlerFunc) http.HandlerFunc {
+	return func(rw http.ResponseWriter, req *http.Request) {
 
 		// save req body for later
 		var reqBody []byte
@@ -168,10 +168,10 @@ func NewRecorder(list *CaptureList, next http.Handler) http.Handler {
 		req.Body = ioutil.NopCloser(bytes.NewReader(reqBody))
 		res := rec.Result()
 		list.Insert(Capture{Req: req, Res: res})
-	})
+	}
 }
 
-func NewProxyHandler(URL string) http.Handler {
+func NewProxyHandler(URL string) http.HandlerFunc {
 	url, _ := url.Parse(URL)
 	proxy := httputil.NewSingleHostReverseProxy(url)
 	proxy.ErrorHandler = func(rw http.ResponseWriter, req *http.Request, err error) {
@@ -179,12 +179,12 @@ func NewProxyHandler(URL string) http.Handler {
 		rw.WriteHeader(StatusInternalProxyError)
 		fmt.Fprintf(rw, "%v", err)
 	}
-	return http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
+	return func(rw http.ResponseWriter, req *http.Request) {
 		req.Host = url.Host
 		req.URL.Host = url.Host
 		req.URL.Scheme = url.Scheme
 		proxy.ServeHTTP(rw, req)
-	})
+	}
 }
 
 func dump(c *Capture) CaptureDump {
@@ -218,7 +218,8 @@ func dumpRequest(req *http.Request) ([]byte, error) {
 
 func dumpResponse(res *http.Response) ([]byte, error) {
 	if res.StatusCode == StatusInternalProxyError {
-		// dumps only the body when we have an proxy error
+		// dumps only the body when we have an proxy error.
+		// This body is set in NewProxyHandler()
 		var resBody []byte
 		res.Body, resBody = drain(res.Body)
 		return resBody, nil
