@@ -106,10 +106,9 @@ func NewDashboardRetryHandler(list *CaptureList, next http.HandlerFunc) http.Han
 		}
 		var reqBody []byte
 		capture.Req.Body, reqBody = drain(capture.Req.Body)
-		r, _ := http.NewRequest(capture.Req.Method, capture.Req.URL.String(), capture.Req.Body)
+		r, _ := http.NewRequest(capture.Req.Method, capture.Req.URL.String(), bytes.NewReader(reqBody))
 		r.Header = capture.Req.Header
 		next.ServeHTTP(rw, r)
-		capture.Req.Body = ioutil.NopCloser(bytes.NewReader(reqBody))
 	}
 }
 
