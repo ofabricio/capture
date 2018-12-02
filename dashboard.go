@@ -263,7 +263,8 @@ const dashboardHTML = `
             }
 
             $scope.retry = () => {
-                $http.get(<<.DashboardRetryPath>> + $scope.selectedItem.id);
+                $http.get(<<.DashboardRetryPath>> + $scope.selectedItem.id)
+                    .then(() => $scope.show($scope.items[$scope.items.length - 1]));
             }
 
             $scope.prettifyBody = key => {
