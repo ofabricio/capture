@@ -14,8 +14,7 @@ type CaptureList struct {
 	items    []Capture
 	mux      sync.Mutex
 	maxItems int
-	// signals any change in "items"
-	Updated chan struct{}
+	updated  chan struct{} // signals any change in "items"
 }
 
 // Capture saves our traffic data
@@ -54,7 +53,7 @@ func (c *Capture) Metadata() CaptureMetadata {
 func NewCaptureList(maxItems int) *CaptureList {
 	return &CaptureList{
 		maxItems: maxItems,
-		Updated:  make(chan struct{}),
+		updated:  make(chan struct{}),
 	}
 }
 
@@ -67,7 +66,7 @@ func (c *CaptureList) Insert(capture Capture) {
 	if len(c.items) > c.maxItems {
 		c.items = c.items[1:]
 	}
-	c.signalsItemsChange()
+	c.signalsChange()
 }
 
 // Find finds a capture by its id
@@ -88,7 +87,7 @@ func (c *CaptureList) RemoveAll() {
 	c.mux.Lock()
 	defer c.mux.Unlock()
 	c.items = nil
-	c.signalsItemsChange()
+	c.signalsChange()
 }
 
 // Items returns all the captures
@@ -112,9 +111,12 @@ func newID() int {
 	return captureID
 }
 
-func (c *CaptureList) signalsItemsChange() {
-	select {
-	case c.Updated <- struct{}{}:
-	default:
-	}
+func (c *CaptureList) signalsChange() {
+	close(c.updated)
+	c.updated = make(chan struct{})
+}
+
+// Updated signals any change in the list
+func (c *CaptureList) Updated() <-chan struct{} {
+	return c.updated
 }

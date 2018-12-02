@@ -68,7 +68,7 @@ func NewDashboardConnHandler(list *CaptureList) http.HandlerFunc {
 			rw.(http.Flusher).Flush()
 
 			select {
-			case <-list.Updated:
+			case <-list.Updated():
 			case <-req.Context().Done():
 				return
 			}
