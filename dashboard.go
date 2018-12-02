@@ -276,10 +276,6 @@ const dashboardHTML = `
             }
 
             const evt = new EventSource(<<.DashboardConnPath>>);
-            evt.addEventListener('connected', e => {
-                $scope.selectedItem = {};
-                $scope.$apply();
-            });
             evt.addEventListener('captures', e => {
                 $scope.items = JSON.parse(e.data);
                 if (!$scope.items.find(i => i.id == $scope.selectedItem.id)) {

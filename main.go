@@ -58,10 +58,6 @@ func NewDashboardConnHandler(list *CaptureList) http.HandlerFunc {
 		}
 		rw.Header().Set("Content-Type", "text/event-stream")
 		rw.Header().Set("Cache-Control", "no-cache")
-
-		fmt.Fprintf(rw, "event: connected\ndata: %s\n\n", "clear")
-		rw.(http.Flusher).Flush()
-
 		for {
 			jsn, _ := json.Marshal(list.ItemsAsMetadata())
 			fmt.Fprintf(rw, "event: captures\ndata: %s\n\n", jsn)
