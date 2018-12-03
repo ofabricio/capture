@@ -12,7 +12,7 @@ var captures CaptureList
 // CaptureList stores all captures
 type CaptureList struct {
 	items    []Capture
-	mux      sync.Mutex
+	mu       sync.RWMutex
 	maxItems int
 	updated  chan struct{} // signals any change in "items"
 }
@@ -59,9 +59,10 @@ func NewCaptureList(maxItems int) *CaptureList {
 
 // Insert adds a new capture
 func (c *CaptureList) Insert(capture Capture) {
-	c.mux.Lock()
-	defer c.mux.Unlock()
-	capture.ID = newID()
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	captureID++
+	capture.ID = captureID
 	c.items = append(c.items, capture)
 	if len(c.items) > c.maxItems {
 		c.items = c.items[1:]
@@ -71,8 +72,8 @@ func (c *CaptureList) Insert(capture Capture) {
 
 // Find finds a capture by its id
 func (c *CaptureList) Find(captureID string) *Capture {
-	c.mux.Lock()
-	defer c.mux.Unlock()
+	c.mu.RLock()
+	defer c.mu.RUnlock()
 	idInt, _ := strconv.Atoi(captureID)
 	for _, c := range c.items {
 		if c.ID == idInt {
@@ -84,31 +85,28 @@ func (c *CaptureList) Find(captureID string) *Capture {
 
 // RemoveAll removes all the captures
 func (c *CaptureList) RemoveAll() {
-	c.mux.Lock()
-	defer c.mux.Unlock()
+	c.mu.Lock()
+	defer c.mu.Unlock()
 	c.items = nil
 	c.signalsChange()
 }
 
 // Items returns all the captures
 func (c *CaptureList) Items() []Capture {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
 	return c.items
 }
 
 // ItemsAsMetadata returns all the captures as metadata
 func (c *CaptureList) ItemsAsMetadata() []CaptureMetadata {
-	c.mux.Lock()
-	defer c.mux.Unlock()
+	c.mu.RLock()
+	defer c.mu.RUnlock()
 	metadatas := make([]CaptureMetadata, len(c.items))
 	for i, capture := range c.items {
 		metadatas[i] = capture.Metadata()
 	}
 	return metadatas
-}
-
-func newID() int {
-	captureID++
-	return captureID
 }
 
 func (c *CaptureList) signalsChange() {
@@ -118,5 +116,7 @@ func (c *CaptureList) signalsChange() {
 
 // Updated signals any change in the list
 func (c *CaptureList) Updated() <-chan struct{} {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
 	return c.updated
 }
