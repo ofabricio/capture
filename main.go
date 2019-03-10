@@ -126,26 +126,38 @@ func NewDashboardItemInfoHandler(list *CaptureList) http.HandlerFunc {
 	}
 }
 
-// NewPlugin setups plugin handler for requests and resposes
+// NewPlugin setups plugins handlers for requests and resposes
 func NewPlugin(next http.HandlerFunc) http.HandlerFunc {
-	p, err := plugin.Open("plugin.so")
+	files, err := ioutil.ReadDir(".")
 	if err != nil {
-		if strings.HasPrefix(err.Error(), "plugin.Open") {
-			fmt.Printf("error: could not open plugin file 'plugin.so': %v\n", err)
+		fmt.Println("error: could not read directory:", err)
+		return next
+	}
+	for _, file := range files {
+		if file.IsDir() {
+			continue
 		}
-		return next
+		if strings.HasSuffix(file.Name(), ".so") {
+			fmt.Printf("loading plugin '%s'\n", file.Name())
+			p, err := plugin.Open(file.Name())
+			if err != nil {
+				fmt.Println("error: could not open plugin:", err)
+				continue
+			}
+			fn, err := p.Lookup("Handler")
+			if err != nil {
+				fmt.Println("error: could not find plugin Handler function:", err)
+				continue
+			}
+			pluginHandler, ok := fn.(func(http.HandlerFunc) http.HandlerFunc)
+			if !ok {
+				fmt.Println("error: plugin Handler function should be 'func(http.HandlerFunc) http.HandlerFunc'")
+				continue
+			}
+			next = pluginHandler(next)
+		}
 	}
-	f, err := p.Lookup("Handler")
-	if err != nil {
-		fmt.Printf("error: could not find plugin Handler function %v\n", err)
-		return next
-	}
-	pluginFn, ok := f.(func(http.HandlerFunc) http.HandlerFunc)
-	if !ok {
-		fmt.Println("error: plugin Handler function should be 'func(http.HandlerFunc) http.HandlerFunc'")
-		return next
-	}
-	return pluginFn(next)
+	return next
 }
 
 // NewRecorder saves all the traffic data
