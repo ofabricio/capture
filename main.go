@@ -30,7 +30,7 @@ func startCapture(config Config) {
 
 	list := NewCaptureList(config.MaxCaptures)
 
-	handler := NewPlugin(NewRecorder(list, NewProxyHandler(config.TargetURL)))
+	handler := NewRecorder(list, NewPlugin(NewProxyHandler(config.TargetURL)))
 
 	http.HandleFunc("/", handler)
 	http.HandleFunc(config.DashboardPath, NewDashboardHTMLHandler(config))
