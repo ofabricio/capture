@@ -12,6 +12,7 @@ import (
 	"net/http/httptest"
 	"net/http/httputil"
 	"net/url"
+	"os"
 	"plugin"
 	"strings"
 
@@ -142,17 +143,17 @@ func NewPlugin(next http.HandlerFunc) http.HandlerFunc {
 			p, err := plugin.Open(file.Name())
 			if err != nil {
 				fmt.Println("error: could not open plugin:", err)
-				continue
+				os.Exit(1)
 			}
 			fn, err := p.Lookup("Handler")
 			if err != nil {
 				fmt.Println("error: could not find plugin Handler function:", err)
-				continue
+				os.Exit(1)
 			}
 			pluginHandler, ok := fn.(func(http.HandlerFunc) http.HandlerFunc)
 			if !ok {
 				fmt.Println("error: plugin Handler function should be 'func(http.HandlerFunc) http.HandlerFunc'")
-				continue
+				os.Exit(1)
 			}
 			next = pluginHandler(next)
 		}
