@@ -173,7 +173,7 @@ func NewRecorder(list *CaptureList, next http.HandlerFunc) http.HandlerFunc {
 		next.ServeHTTP(rec, req)
 
 		// respond
-		for k, v := range rec.HeaderMap {
+		for k, v := range rec.Header() {
 			rw.Header()[k] = v
 		}
 		rw.WriteHeader(rec.Code)
