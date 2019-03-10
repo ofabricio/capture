@@ -63,3 +63,18 @@ Via docker:
 Now you have an executable binary in your folder
 
 **Note:** you can change `GOOS=darwin` to `linux` or `windows`
+
+## Plugins
+
+Put [plugin](https://golang.org/pkg/plugin/) files in the current directory.
+They are loaded sorted by filename on startup.
+
+Plugins must export the following function:
+
+```go
+func Handler(proxy http.HandlerFunc) http.HandlerFunc {
+    return func(rw http.ResponseWriter, r *http.Request) {
+        proxy.ServeHTTP(rw, r)
+    }
+}
+```

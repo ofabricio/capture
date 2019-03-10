@@ -127,7 +127,7 @@ func NewDashboardItemInfoHandler(list *CaptureList) http.HandlerFunc {
 	}
 }
 
-// NewPlugin setups plugins handlers for requests and resposes
+// NewPlugin loads plugin files in the current directory. They are loaded sorted by filename.
 func NewPlugin(next http.HandlerFunc) http.HandlerFunc {
 	files, err := ioutil.ReadDir(".")
 	if err != nil {
