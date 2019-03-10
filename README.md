@@ -60,7 +60,7 @@ Via docker:
     cd capture
     docker run --rm -v "${PWD}:/src" -w /src -e GOOS=darwin golang:latest go build -ldflags="-s -w" -o capture .
 
-Now you have an executable binary in your folder
+Now you have an executable binary in your directory
 
 **Note:** you can change `GOOS=darwin` to `linux` or `windows`
 
