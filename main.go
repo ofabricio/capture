@@ -13,6 +13,7 @@ import (
 	"net/http/httputil"
 	"net/url"
 	"os"
+	"path/filepath"
 	"plugin"
 	"strings"
 
@@ -129,7 +130,13 @@ func NewDashboardItemInfoHandler(list *CaptureList) http.HandlerFunc {
 
 // NewPlugin loads plugin files in the current directory. They are loaded sorted by filename.
 func NewPlugin(next http.HandlerFunc) http.HandlerFunc {
-	files, err := ioutil.ReadDir(".")
+	ex, err := os.Executable()
+	if err != nil {
+		fmt.Println("error: could not get executable:", err)
+		return next
+	}
+	exPath := filepath.Dir(ex)
+	files, err := ioutil.ReadDir(exPath)
 	if err != nil {
 		fmt.Println("error: could not read directory:", err)
 		return next
@@ -140,7 +147,7 @@ func NewPlugin(next http.HandlerFunc) http.HandlerFunc {
 		}
 		if strings.HasSuffix(file.Name(), ".so") {
 			fmt.Printf("loading plugin '%s'\n", file.Name())
-			p, err := plugin.Open(file.Name())
+			p, err := plugin.Open(exPath + "/" + file.Name())
 			if err != nil {
 				fmt.Println("error: could not open plugin:", err)
 				os.Exit(1)
