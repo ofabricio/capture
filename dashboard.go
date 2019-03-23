@@ -29,6 +29,7 @@ const dashboardHTML = `
         --status-error: #e06c75;
         --btn-bg: var(--list-item-bg);
         --btn-hover: var(--list-item-sel-bg);
+		--disabled: hsl(187, 5%, 50%);
     }
 
     * { padding: 0; margin: 0; box-sizing: border-box }
@@ -104,6 +105,7 @@ const dashboardHTML = `
     .method { font-size: 0.7em; margin-right: 1rem; padding: .25rem .5rem }
     .status { font-size: 0.8em; padding-left: 1rem }
     .path   { font-size: 0.8em; flex: 1; text-align: right; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; direction: rtl }
+	.time   { font-size: 0.7em; padding-left: 1rem; color: var(--disabled) }
 
     pre {
         flex: 1;
@@ -148,7 +150,7 @@ const dashboardHTML = `
         outline: 0;
     }
     button:disabled {
-        color: hsl(187, 5%, 50%);
+		color: var(--disabled);
         cursor: default;
     }
     button:hover:enabled {
@@ -190,6 +192,7 @@ const dashboardHTML = `
                 <span class="method" ng-class="item.method">{{item.method}}</span>
                 <span class="path">&lrm;{{item.path}}&lrm;</span>
                 <span class="status" ng-class="statusColor(item)">{{item.status == 999 ? 'failed' : item.status}}</span>
+                <span class="time">{{item.elapsed}}ms</span>
             </div>
         </div>
     </div>

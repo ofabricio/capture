@@ -16,6 +16,7 @@ import (
 	"path/filepath"
 	"plugin"
 	"strings"
+	"time"
 
 	"github.com/ofabricio/curl"
 )
@@ -178,7 +179,11 @@ func NewRecorder(list *CaptureList, next http.HandlerFunc) http.HandlerFunc {
 
 		rec := httptest.NewRecorder()
 
+		start := time.Now()
+
 		next.ServeHTTP(rec, req)
+
+		elapsed := time.Since(start).Truncate(time.Millisecond) / time.Millisecond
 
 		// respond
 		for k, v := range rec.Header() {
@@ -190,7 +195,7 @@ func NewRecorder(list *CaptureList, next http.HandlerFunc) http.HandlerFunc {
 		// record req and res
 		req.Body = ioutil.NopCloser(bytes.NewReader(reqBody))
 		res := rec.Result()
-		list.Insert(Capture{Req: req, Res: res})
+		list.Insert(Capture{Req: req, Res: res, Elapsed: elapsed})
 	}
 }
 

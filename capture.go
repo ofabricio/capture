@@ -4,10 +4,10 @@ import (
 	"net/http"
 	"strconv"
 	"sync"
+	"time"
 )
 
 var captureID int
-var captures CaptureList
 
 // CaptureList stores all captures
 type CaptureList struct {
@@ -22,6 +22,9 @@ type Capture struct {
 	ID  int
 	Req *http.Request
 	Res *http.Response
+
+	// Elapsed time of the request, in milliseconds
+	Elapsed time.Duration
 }
 
 // CaptureMetadata is the data for each list item in the dashboard
@@ -30,6 +33,8 @@ type CaptureMetadata struct {
 	Path   string `json:"path"`
 	Method string `json:"method"`
 	Status int    `json:"status"`
+
+	Elapsed time.Duration `json:"elapsed"`
 }
 
 // CaptureDump saves all the dumps shown in the dashboard
@@ -42,10 +47,11 @@ type CaptureDump struct {
 // Metadata returns the metadada of a capture
 func (c *Capture) Metadata() CaptureMetadata {
 	return CaptureMetadata{
-		ID:     c.ID,
-		Path:   c.Req.URL.Path,
-		Method: c.Req.Method,
-		Status: c.Res.StatusCode,
+		ID:      c.ID,
+		Path:    c.Req.URL.Path,
+		Method:  c.Req.Method,
+		Status:  c.Res.StatusCode,
+		Elapsed: c.Elapsed,
 	}
 }
 
