@@ -38,14 +38,14 @@ func startCapture(config Config) {
 	http.HandleFunc("/", handler)
 	http.HandleFunc(config.DashboardPath, NewDashboardHTMLHandler(config))
 	http.HandleFunc(config.DashboardConnPath, NewDashboardConnHandler(list))
+	http.HandleFunc(config.DashboardInfoPath, NewDashboardInfoHandler(list))
 	http.HandleFunc(config.DashboardClearPath, NewDashboardClearHandler(list))
 	http.HandleFunc(config.DashboardRetryPath, NewDashboardRetryHandler(list, handler))
-	http.HandleFunc(config.DashboardItemInfoPath, NewDashboardItemInfoHandler(list))
 
 	captureHost := fmt.Sprintf("http://localhost:%s", config.ProxyPort)
 
 	fmt.Printf("\nListening on %s", captureHost)
-	fmt.Printf("\n             %s/%s\n\n", captureHost, config.Dashboard)
+	fmt.Printf("\n             %s%s\n\n", captureHost, config.DashboardPath)
 
 	fmt.Println(http.ListenAndServe(":"+config.ProxyPort, nil))
 }
@@ -111,8 +111,8 @@ func NewDashboardRetryHandler(list *CaptureList, next http.HandlerFunc) http.Han
 	}
 }
 
-// NewDashboardItemInfoHandler returns the full capture info
-func NewDashboardItemInfoHandler(list *CaptureList) http.HandlerFunc {
+// NewDashboardInfoHandler returns the full capture info
+func NewDashboardInfoHandler(list *CaptureList) http.HandlerFunc {
 	return func(rw http.ResponseWriter, req *http.Request) {
 		id := req.URL.Path[strings.LastIndex(req.URL.Path, "/")+1:]
 		capture := list.Find(id)

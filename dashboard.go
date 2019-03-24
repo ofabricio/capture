@@ -233,7 +233,7 @@ const dashboardHTML = `
             $scope.show = item => {
                 $scope.selectedItem.id = item.id;
                 $scope.selectedItem.status = item.status;
-                $http.get(<<.DashboardItemInfoPath>> + item.id).then(r => {
+                $http.get(<<.DashboardInfoPath>> + item.id).then(r => {
                     $scope.selectedItem.request  = r.data.request;
                     $scope.selectedItem.response = r.data.response;
                     $scope.selectedItem.curl = r.data.curl;
