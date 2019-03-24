@@ -35,12 +35,12 @@ func startCapture(config Config) {
 
 	handler := NewRecorder(list, NewPlugin(NewProxyHandler(config.TargetURL)))
 
-	http.HandleFunc("/", handler)
 	http.HandleFunc(config.DashboardPath, NewDashboardHTMLHandler(config))
 	http.HandleFunc(config.DashboardConnPath, NewDashboardConnHandler(list))
 	http.HandleFunc(config.DashboardInfoPath, NewDashboardInfoHandler(list))
 	http.HandleFunc(config.DashboardClearPath, NewDashboardClearHandler(list))
 	http.HandleFunc(config.DashboardRetryPath, NewDashboardRetryHandler(list, handler))
+	http.HandleFunc("/", handler)
 
 	captureHost := fmt.Sprintf("http://localhost:%s", config.ProxyPort)
 
