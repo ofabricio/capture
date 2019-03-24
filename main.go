@@ -103,10 +103,6 @@ func NewDashboardRetryHandler(list *CaptureList, next http.HandlerFunc) http.Han
 	return func(rw http.ResponseWriter, req *http.Request) {
 		id := req.URL.Path[strings.LastIndex(req.URL.Path, "/")+1:]
 		capture := list.Find(id)
-		if capture == nil {
-			http.Error(rw, "Item Not Found", http.StatusNotFound)
-			return
-		}
 		var reqBody []byte
 		capture.Req.Body, reqBody = drain(capture.Req.Body)
 		r, _ := http.NewRequest(capture.Req.Method, capture.Req.URL.String(), bytes.NewReader(reqBody))
@@ -120,10 +116,6 @@ func NewDashboardItemInfoHandler(list *CaptureList) http.HandlerFunc {
 	return func(rw http.ResponseWriter, req *http.Request) {
 		id := req.URL.Path[strings.LastIndex(req.URL.Path, "/")+1:]
 		capture := list.Find(id)
-		if capture == nil {
-			http.Error(rw, "Item Not Found", http.StatusNotFound)
-			return
-		}
 		rw.Header().Add("Content-Type", "application/json")
 		json.NewEncoder(rw).Encode(dump(capture))
 	}
