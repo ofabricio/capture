@@ -26,28 +26,29 @@ const StatusInternalProxyError = 999
 
 func main() {
 	config := ReadConfig()
-	startCapture(config)
+
+	proxyURL := fmt.Sprintf("http://localhost:%s", config.ProxyPort)
+
+	fmt.Printf("\nListening on %s", proxyURL)
+	fmt.Printf("\n             %s%s\n\n", proxyURL, config.DashboardPath)
+
+	fmt.Println(http.ListenAndServe(":"+config.ProxyPort, NewCaptureHandler(config)))
 }
 
-func startCapture(config Config) {
+func NewCaptureHandler(config Config) http.Handler {
 
 	srv := NewCaptureService(config.MaxCaptures)
 
 	handler := NewRecorderHandler(srv, NewPluginHandler(NewProxyHandler(config.TargetURL)))
 
-	http.HandleFunc(config.DashboardPath, NewDashboardHTMLHandler(config))
-	http.HandleFunc(config.DashboardConnPath, NewDashboardConnHandler(srv))
-	http.HandleFunc(config.DashboardInfoPath, NewDashboardInfoHandler(srv))
-	http.HandleFunc(config.DashboardClearPath, NewDashboardClearHandler(srv))
-	http.HandleFunc(config.DashboardRetryPath, NewDashboardRetryHandler(srv, handler))
-	http.HandleFunc("/", handler)
-
-	captureHost := fmt.Sprintf("http://localhost:%s", config.ProxyPort)
-
-	fmt.Printf("\nListening on %s", captureHost)
-	fmt.Printf("\n             %s%s\n\n", captureHost, config.DashboardPath)
-
-	fmt.Println(http.ListenAndServe(":"+config.ProxyPort, nil))
+	router := http.NewServeMux()
+	router.HandleFunc(config.DashboardPath, NewDashboardHTMLHandler(config))
+	router.HandleFunc(config.DashboardConnPath, NewDashboardConnHandler(srv))
+	router.HandleFunc(config.DashboardInfoPath, NewDashboardInfoHandler(srv))
+	router.HandleFunc(config.DashboardClearPath, NewDashboardClearHandler(srv))
+	router.HandleFunc(config.DashboardRetryPath, NewDashboardRetryHandler(srv, handler))
+	router.HandleFunc("/", handler)
+	return router
 }
 
 // NewDashboardConnHandler opens an event stream connection with the dashboard
