@@ -27,7 +27,7 @@ const StatusInternalProxyError = 999
 func main() {
 	config := ReadConfig()
 
-	proxyURL := fmt.Sprintf("http://localhost:%s", config.ProxyPort)
+	proxyURL := "http://localhost:" + config.ProxyPort
 
 	fmt.Printf("\nListening on %s", proxyURL)
 	fmt.Printf("\n             %s%s\n\n", proxyURL, config.DashboardPath)
@@ -140,7 +140,7 @@ func NewPluginHandler(next http.HandlerFunc) http.HandlerFunc {
 			continue
 		}
 		if strings.HasSuffix(file.Name(), ".so") {
-			fmt.Printf("loading plugin '%s'\n", file.Name())
+			fmt.Printf("Loading plugin '%s'\n", file.Name())
 			p, err := plugin.Open(exPath + "/" + file.Name())
 			if err != nil {
 				fmt.Println("error: could not open plugin:", err)
@@ -162,7 +162,7 @@ func NewPluginHandler(next http.HandlerFunc) http.HandlerFunc {
 	return next
 }
 
-// NewRecorderHandler saves all the traffic data
+// NewRecorderHandler records all the traffic data
 func NewRecorderHandler(srv *CaptureService, next http.HandlerFunc) http.HandlerFunc {
 	return func(rw http.ResponseWriter, req *http.Request) {
 
@@ -197,7 +197,7 @@ func NewProxyHandler(URL string) http.HandlerFunc {
 	url, _ := url.Parse(URL)
 	proxy := httputil.NewSingleHostReverseProxy(url)
 	proxy.ErrorHandler = func(rw http.ResponseWriter, req *http.Request, err error) {
-		fmt.Printf("uh oh | %v | %s %s\n", err, req.Method, req.URL)
+		fmt.Printf("Uh oh | %v | %s %s\n", err, req.Method, req.URL)
 		rw.WriteHeader(StatusInternalProxyError)
 		fmt.Fprintf(rw, "%v", err)
 	}
