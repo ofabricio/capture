@@ -31,15 +31,15 @@ func main() {
 
 func startCapture(config Config) {
 
-	list := NewCaptureList(config.MaxCaptures)
+	srv := NewCaptureService(config.MaxCaptures)
 
-	handler := NewRecorder(list, NewPlugin(NewProxyHandler(config.TargetURL)))
+	handler := NewRecorderHandler(srv, NewPluginHandler(NewProxyHandler(config.TargetURL)))
 
 	http.HandleFunc(config.DashboardPath, NewDashboardHTMLHandler(config))
-	http.HandleFunc(config.DashboardConnPath, NewDashboardConnHandler(list))
-	http.HandleFunc(config.DashboardInfoPath, NewDashboardInfoHandler(list))
-	http.HandleFunc(config.DashboardClearPath, NewDashboardClearHandler(list))
-	http.HandleFunc(config.DashboardRetryPath, NewDashboardRetryHandler(list, handler))
+	http.HandleFunc(config.DashboardConnPath, NewDashboardConnHandler(srv))
+	http.HandleFunc(config.DashboardInfoPath, NewDashboardInfoHandler(srv))
+	http.HandleFunc(config.DashboardClearPath, NewDashboardClearHandler(srv))
+	http.HandleFunc(config.DashboardRetryPath, NewDashboardRetryHandler(srv, handler))
 	http.HandleFunc("/", handler)
 
 	captureHost := fmt.Sprintf("http://localhost:%s", config.ProxyPort)
@@ -52,7 +52,7 @@ func startCapture(config Config) {
 
 // NewDashboardConnHandler opens an event stream connection with the dashboard
 // so that it is notified everytime a new capture arrives
-func NewDashboardConnHandler(list *CaptureList) http.HandlerFunc {
+func NewDashboardConnHandler(srv *CaptureService) http.HandlerFunc {
 	return func(rw http.ResponseWriter, req *http.Request) {
 		if _, ok := rw.(http.Flusher); !ok {
 			fmt.Printf("streaming not supported at %s\n", req.URL)
@@ -62,12 +62,12 @@ func NewDashboardConnHandler(list *CaptureList) http.HandlerFunc {
 		rw.Header().Set("Content-Type", "text/event-stream")
 		rw.Header().Set("Cache-Control", "no-cache")
 		for {
-			jsn, _ := json.Marshal(list.ItemsAsMetadata())
+			jsn, _ := json.Marshal(srv.DashboardItems())
 			fmt.Fprintf(rw, "event: captures\ndata: %s\n\n", jsn)
 			rw.(http.Flusher).Flush()
 
 			select {
-			case <-list.Updated():
+			case <-srv.Updated():
 			case <-req.Context().Done():
 				return
 			}
@@ -76,9 +76,9 @@ func NewDashboardConnHandler(list *CaptureList) http.HandlerFunc {
 }
 
 // NewDashboardClearHandler clears all the captures
-func NewDashboardClearHandler(list *CaptureList) http.HandlerFunc {
+func NewDashboardClearHandler(srv *CaptureService) http.HandlerFunc {
 	return func(rw http.ResponseWriter, req *http.Request) {
-		list.RemoveAll()
+		srv.RemoveAll()
 		rw.WriteHeader(http.StatusOK)
 	}
 }
@@ -99,10 +99,10 @@ func NewDashboardHTMLHandler(config Config) http.HandlerFunc {
 }
 
 // NewDashboardRetryHandler retries a request
-func NewDashboardRetryHandler(list *CaptureList, next http.HandlerFunc) http.HandlerFunc {
+func NewDashboardRetryHandler(srv *CaptureService, next http.HandlerFunc) http.HandlerFunc {
 	return func(rw http.ResponseWriter, req *http.Request) {
 		id := req.URL.Path[strings.LastIndex(req.URL.Path, "/")+1:]
-		capture := list.Find(id)
+		capture := srv.Find(id)
 		var reqBody []byte
 		capture.Req.Body, reqBody = drain(capture.Req.Body)
 		r, _ := http.NewRequest(capture.Req.Method, capture.Req.URL.String(), bytes.NewReader(reqBody))
@@ -112,17 +112,17 @@ func NewDashboardRetryHandler(list *CaptureList, next http.HandlerFunc) http.Han
 }
 
 // NewDashboardInfoHandler returns the full capture info
-func NewDashboardInfoHandler(list *CaptureList) http.HandlerFunc {
+func NewDashboardInfoHandler(srv *CaptureService) http.HandlerFunc {
 	return func(rw http.ResponseWriter, req *http.Request) {
 		id := req.URL.Path[strings.LastIndex(req.URL.Path, "/")+1:]
-		capture := list.Find(id)
+		capture := srv.Find(id)
 		rw.Header().Add("Content-Type", "application/json")
 		json.NewEncoder(rw).Encode(dump(capture))
 	}
 }
 
-// NewPlugin loads plugin files in the current directory. They are loaded sorted by filename.
-func NewPlugin(next http.HandlerFunc) http.HandlerFunc {
+// NewPluginHandler loads plugin files in the current directory. They are loaded sorted by filename.
+func NewPluginHandler(next http.HandlerFunc) http.HandlerFunc {
 	ex, err := os.Executable()
 	if err != nil {
 		fmt.Println("error: could not get executable:", err)
@@ -161,8 +161,8 @@ func NewPlugin(next http.HandlerFunc) http.HandlerFunc {
 	return next
 }
 
-// NewRecorder saves all the traffic data
-func NewRecorder(list *CaptureList, next http.HandlerFunc) http.HandlerFunc {
+// NewRecorderHandler saves all the traffic data
+func NewRecorderHandler(srv *CaptureService, next http.HandlerFunc) http.HandlerFunc {
 	return func(rw http.ResponseWriter, req *http.Request) {
 
 		// save req body for later
@@ -187,7 +187,7 @@ func NewRecorder(list *CaptureList, next http.HandlerFunc) http.HandlerFunc {
 		// record req and res
 		req.Body = ioutil.NopCloser(bytes.NewReader(reqBody))
 		res := rec.Result()
-		list.Insert(Capture{Req: req, Res: res, Elapsed: elapsed})
+		srv.Insert(Capture{Req: req, Res: res, Elapsed: elapsed})
 	}
 }
 

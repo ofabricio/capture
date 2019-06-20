@@ -9,26 +9,25 @@ import (
 
 var captureID int
 
-// CaptureList stores all captures
-type CaptureList struct {
+// CaptureService handles captures
+type CaptureService struct {
 	items    []Capture
 	mu       sync.RWMutex
 	maxItems int
 	updated  chan struct{} // signals any change in "items"
 }
 
-// Capture saves our traffic data
+// Capture is our traffic data
 type Capture struct {
 	ID  int
 	Req *http.Request
 	Res *http.Response
-
 	// Elapsed time of the request, in milliseconds
 	Elapsed time.Duration
 }
 
-// CaptureMetadata is the data for each list item in the dashboard
-type CaptureMetadata struct {
+// DashboardItem is an item in the dashboard's list
+type DashboardItem struct {
 	ID     int    `json:"id"`
 	Path   string `json:"path"`
 	Method string `json:"method"`
@@ -37,51 +36,42 @@ type CaptureMetadata struct {
 	Elapsed time.Duration `json:"elapsed"`
 }
 
-// CaptureDump saves all the dumps shown in the dashboard
+// CaptureDump is all the dumps shown in the dashboard
 type CaptureDump struct {
 	Request  string `json:"request"`
 	Response string `json:"response"`
 	Curl     string `json:"curl"`
 }
 
-// Metadata returns the metadada of a capture
-func (c *Capture) Metadata() CaptureMetadata {
-	return CaptureMetadata{
-		ID:      c.ID,
-		Path:    c.Req.URL.Path,
-		Method:  c.Req.Method,
-		Status:  c.Res.StatusCode,
-		Elapsed: c.Elapsed,
-	}
-}
-
-// NewCaptureList creates a new list of captures
-func NewCaptureList(maxItems int) *CaptureList {
-	return &CaptureList{
+// NewCaptureService creates a new service of captures
+func NewCaptureService(maxItems int) *CaptureService {
+	return &CaptureService{
 		maxItems: maxItems,
 		updated:  make(chan struct{}),
 	}
 }
 
-// Insert adds a new capture
-func (c *CaptureList) Insert(capture Capture) {
-	c.mu.Lock()
-	defer c.mu.Unlock()
+// Insert inserts a new capture
+func (s *CaptureService) Insert(capture Capture) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
 	captureID++
 	capture.ID = captureID
-	c.items = append(c.items, capture)
-	if len(c.items) > c.maxItems {
-		c.items = c.items[1:]
+	s.items = append(s.items, capture)
+	if len(s.items) > s.maxItems {
+		s.items = s.items[1:]
 	}
-	c.signalsChange()
+	s.signalsUpdate()
 }
 
 // Find finds a capture by its id
-func (c *CaptureList) Find(captureID string) *Capture {
-	c.mu.RLock()
-	defer c.mu.RUnlock()
+func (s *CaptureService) Find(captureID string) *Capture {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
 	idInt, _ := strconv.Atoi(captureID)
-	for _, c := range c.items {
+	for _, c := range s.items {
 		if c.ID == idInt {
 			return &c
 		}
@@ -90,39 +80,43 @@ func (c *CaptureList) Find(captureID string) *Capture {
 }
 
 // RemoveAll removes all the captures
-func (c *CaptureList) RemoveAll() {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	c.items = nil
-	c.signalsChange()
+func (s *CaptureService) RemoveAll() {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	s.items = nil
+	s.signalsUpdate()
 }
 
-// Items returns all the captures
-func (c *CaptureList) Items() []Capture {
-	c.mu.RLock()
-	defer c.mu.RUnlock()
-	return c.items
-}
+// DashboardItems returns the dashboard's list of items
+func (s *CaptureService) DashboardItems() []DashboardItem {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
 
-// ItemsAsMetadata returns all the captures as metadata
-func (c *CaptureList) ItemsAsMetadata() []CaptureMetadata {
-	c.mu.RLock()
-	defer c.mu.RUnlock()
-	metadatas := make([]CaptureMetadata, len(c.items))
-	for i, capture := range c.items {
-		metadatas[i] = capture.Metadata()
+	metadatas := make([]DashboardItem, len(s.items))
+	for i, capture := range s.items {
+		metadatas[i] = DashboardItem{
+			ID:      capture.ID,
+			Path:    capture.Req.URL.Path,
+			Method:  capture.Req.Method,
+			Status:  capture.Res.StatusCode,
+			Elapsed: capture.Elapsed,
+		}
 	}
 	return metadatas
 }
 
-func (c *CaptureList) signalsChange() {
-	close(c.updated)
-	c.updated = make(chan struct{})
+// signalsUpdate fires an update signal
+func (s *CaptureService) signalsUpdate() {
+	close(s.updated)
+	s.updated = make(chan struct{})
 }
 
-// Updated signals any change in the list
-func (c *CaptureList) Updated() <-chan struct{} {
-	c.mu.RLock()
-	defer c.mu.RUnlock()
-	return c.updated
+// Updated signals any change in this service,
+// like inserting or removing captures
+func (s *CaptureService) Updated() <-chan struct{} {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	return s.updated
 }
