@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"html/template"
-	"io"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
@@ -104,10 +103,15 @@ func NewDashboardRetryHandler(srv *CaptureService, next http.HandlerFunc) http.H
 	return func(rw http.ResponseWriter, req *http.Request) {
 		id := req.URL.Path[strings.LastIndex(req.URL.Path, "/")+1:]
 		capture := srv.Find(id)
-		var reqBody []byte
-		capture.Req.Body, reqBody = drain(capture.Req.Body)
+
+		reqBody, _ := ioutil.ReadAll(capture.Req.Body)
+		req.Body.Close()
+		capture.Req.Body = ioutil.NopCloser(bytes.NewReader(reqBody))
+
+		// creates a new request based on the current one
 		r, _ := http.NewRequest(capture.Req.Method, capture.Req.URL.String(), bytes.NewReader(reqBody))
 		r.Header = capture.Req.Header
+
 		next.ServeHTTP(rw, r)
 	}
 }
@@ -167,8 +171,9 @@ func NewRecorderHandler(srv *CaptureService, next http.HandlerFunc) http.Handler
 	return func(rw http.ResponseWriter, req *http.Request) {
 
 		// save req body for later
-		var reqBody []byte
-		req.Body, reqBody = drain(req.Body)
+		reqBody, _ := ioutil.ReadAll(req.Body)
+		req.Body.Close()
+		req.Body = ioutil.NopCloser(bytes.NewReader(reqBody))
 
 		rec := httptest.NewRecorder()
 
@@ -233,8 +238,11 @@ func dumpRequest(req *http.Request) ([]byte, error) {
 }
 
 func dumpGzipRequest(req *http.Request) ([]byte, error) {
-	var reqBody []byte
-	req.Body, reqBody = drain(req.Body)
+
+	reqBody, _ := ioutil.ReadAll(req.Body)
+	req.Body.Close()
+	req.Body = ioutil.NopCloser(bytes.NewReader(reqBody))
+
 	reader, _ := gzip.NewReader(bytes.NewReader(reqBody))
 	req.Body = ioutil.NopCloser(reader)
 	reqDump, err := httputil.DumpRequest(req, true)
@@ -244,7 +252,7 @@ func dumpGzipRequest(req *http.Request) ([]byte, error) {
 
 func dumpResponse(res *http.Response) ([]byte, error) {
 	if res.StatusCode == StatusInternalProxyError {
-		return dumpInternalProxyError(res)
+		return dumpResponseBody(res)
 	}
 	if res.Header.Get("Content-Encoding") == "gzip" {
 		return dumpGzipResponse(res)
@@ -254,24 +262,21 @@ func dumpResponse(res *http.Response) ([]byte, error) {
 
 // Dumps only the body when we have an proxy error.
 // This body is set in NewProxyHandler() in proxy.ErrorHandler
-func dumpInternalProxyError(res *http.Response) ([]byte, error) {
-	var resBody []byte
-	res.Body, resBody = drain(res.Body)
+func dumpResponseBody(res *http.Response) ([]byte, error) {
+	resBody, _ := ioutil.ReadAll(res.Body)
+	res.Body.Close()
+	res.Body = ioutil.NopCloser(bytes.NewReader(resBody))
 	return resBody, nil
 }
 
 func dumpGzipResponse(res *http.Response) ([]byte, error) {
-	var resBody []byte
-	res.Body, resBody = drain(res.Body)
+	resBody, _ := ioutil.ReadAll(res.Body)
+	res.Body.Close()
+	res.Body = ioutil.NopCloser(bytes.NewReader(resBody))
+
 	reader, _ := gzip.NewReader(bytes.NewReader(resBody))
 	res.Body = ioutil.NopCloser(reader)
 	resDump, err := httputil.DumpResponse(res, true)
 	res.Body = ioutil.NopCloser(bytes.NewReader(resBody))
 	return resDump, err
-}
-
-func drain(b io.ReadCloser) (io.ReadCloser, []byte) {
-	all, _ := ioutil.ReadAll(b)
-	b.Close()
-	return ioutil.NopCloser(bytes.NewReader(all)), all
 }
