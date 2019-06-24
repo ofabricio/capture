@@ -1,5 +1,6 @@
 
-**Capture** is a reverse proxy that captures the network traffic and shows it in a dashboard
+**Capture** is a reverse proxy that takes an incoming HTTP request and sends it to another server,
+proxying the response back to the client, while showing them in a dashboard
 
 [![Build Status](https://travis-ci.com/ofabricio/capture.svg?branch=master)](https://travis-ci.com/ofabricio/capture)
 [![Github Release](https://img.shields.io/github/release/ofabricio/capture.svg)](https://github.com/ofabricio/capture/releases)
@@ -19,7 +20,7 @@ For ready-to-use executables for *Windows*, *Linux* and *Mac*, see [Releases](ht
 
 | param           | description |
 |-----------------|-------------|
-| `-url`          | **Required.** Set the base url you want to capture |
+| `-url`          | **Required.** Set the url you want to proxy |
 | `-port`         | Set the proxy port. Default: *9000* |
 | `-dashboard`    | Set the dashboard's name. Default: *dashboard* |
 | `-max-captures` | Set the max number of captures to show in the dashboard. Default: *16* |
