@@ -12,6 +12,7 @@ import (
 	"net/http/httputil"
 	"net/url"
 	"os"
+	"path"
 	"path/filepath"
 	"plugin"
 	"strings"
@@ -101,7 +102,7 @@ func NewDashboardHTMLHandler(config Config) http.HandlerFunc {
 // NewDashboardRetryHandler retries a request
 func NewDashboardRetryHandler(srv *CaptureService, next http.HandlerFunc) http.HandlerFunc {
 	return func(rw http.ResponseWriter, req *http.Request) {
-		id := req.URL.Path[strings.LastIndex(req.URL.Path, "/")+1:]
+		id := path.Base(req.URL.Path)
 		capture := srv.Find(id)
 
 		reqBody, _ := ioutil.ReadAll(capture.Req.Body)
@@ -119,7 +120,7 @@ func NewDashboardRetryHandler(srv *CaptureService, next http.HandlerFunc) http.H
 // NewDashboardInfoHandler returns the full capture info
 func NewDashboardInfoHandler(srv *CaptureService) http.HandlerFunc {
 	return func(rw http.ResponseWriter, req *http.Request) {
-		id := req.URL.Path[strings.LastIndex(req.URL.Path, "/")+1:]
+		id := path.Base(req.URL.Path)
 		capture := srv.Find(id)
 		rw.Header().Add("Content-Type", "application/json")
 		json.NewEncoder(rw).Encode(dump(capture))
