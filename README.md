@@ -18,7 +18,7 @@ proxying the response back to the client, while showing them in a dashboard
 | `-url`          | **Required.** Set the url you want to proxy |
 | `-port`         | Set the proxy port. Default: *9000* |
 | `-dashboard`    | Set the dashboard port. Default: *9001* |
-| `-max-captures` | Set the max number of captures to show in the dashboard. Default: *16* |
+| `-captures`     | Set how many captures to show in the dashboard. Default: *16* |
 
 
 ## Using
