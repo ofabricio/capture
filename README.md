@@ -42,13 +42,13 @@ To access the dashboard go to `http://localhost:9001/`
 
 Manually:
 
-    git clone https://github.com/ofabricio/capture.git
+    git clone --depth 1 https://github.com/ofabricio/capture.git
     cd capture
     go build -o capture .
 
 Via docker:
 
-    git clone https://github.com/ofabricio/capture.git
+    git clone --depth 1 https://github.com/ofabricio/capture.git
     cd capture
     docker run --rm -v "${PWD}:/src" -w /src -e GOOS=darwin golang:latest go build -o capture .
 
