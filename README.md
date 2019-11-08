@@ -16,13 +16,13 @@ For ready-to-use executables for *Windows*, *Linux* and *Mac*, see [Releases](ht
     ./capture -url=https://example.com/
 
 
-### Configurations
+### Settings
 
 | param           | description |
 |-----------------|-------------|
 | `-url`          | **Required.** Set the url you want to proxy |
 | `-port`         | Set the proxy port. Default: *9000* |
-| `-dashboard`    | Set the dashboard's name. Default: *dashboard* |
+| `-dashboard`    | Set the dashboard port. Default: *9001* |
 | `-max-captures` | Set the max number of captures to show in the dashboard. Default: *16* |
 
 
@@ -36,11 +36,7 @@ address. Hence, calling `http://localhost:9000/users/1` is like calling `http://
 
 ## Dashboard
 
-To access the dashboard go to `http://localhost:9000/dashboard`
-
-The path `/dashboard/**` is reserved, that means if your api has a path like that it will be ignored
-in favor of the dashboard. However, you can change the dashboard's name with `-dashboard`
-
+To access the dashboard go to `http://localhost:9001/`
 
 ##### Preview
 

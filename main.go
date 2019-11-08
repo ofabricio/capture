@@ -27,27 +27,33 @@ const StatusInternalProxyError = 999
 func main() {
 	config := ReadConfig()
 
-	proxyURL := "http://localhost:" + config.ProxyPort
-
-	fmt.Printf("\nListening on %s", proxyURL)
-	fmt.Printf("\n             %s%s\n\n", proxyURL, config.DashboardPath)
-
-	fmt.Println(http.ListenAndServe(":"+config.ProxyPort, NewCaptureHandler(config)))
-}
-
-func NewCaptureHandler(config Config) http.Handler {
+	fmt.Printf("\nListening on http://localhost:%s", config.ProxyPort)
+	fmt.Printf("\nDashboard on http://localhost:%s", config.DashboardPort)
+	fmt.Println()
 
 	srv := NewCaptureService(config.MaxCaptures)
-
 	handler := NewRecorderHandler(srv, NewPluginHandler(NewProxyHandler(config.TargetURL)))
 
+	go func() {
+		fmt.Println(http.ListenAndServe(":"+config.DashboardPort, NewDashboardHandler(handler, srv, config)))
+		os.Exit(1)
+	}()
+	fmt.Println(http.ListenAndServe(":"+config.ProxyPort, NewCaptureHandler(handler)))
+}
+
+func NewCaptureHandler(h http.HandlerFunc) http.Handler {
 	router := http.NewServeMux()
-	router.HandleFunc(config.DashboardPath, NewDashboardHTMLHandler(config))
-	router.HandleFunc(config.DashboardConnPath, NewDashboardConnHandler(srv))
-	router.HandleFunc(config.DashboardInfoPath, NewDashboardInfoHandler(srv))
-	router.HandleFunc(config.DashboardClearPath, NewDashboardClearHandler(srv))
-	router.HandleFunc(config.DashboardRetryPath, NewDashboardRetryHandler(srv, handler))
-	router.HandleFunc("/", handler)
+	router.HandleFunc("/", h)
+	return router
+}
+
+func NewDashboardHandler(h http.HandlerFunc, srv *CaptureService, config Config) http.Handler {
+	router := http.NewServeMux()
+	router.HandleFunc("/", NewDashboardHTMLHandler(config))
+	router.HandleFunc("/conn/", NewDashboardConnHandler(srv))
+	router.HandleFunc("/info/", NewDashboardInfoHandler(srv))
+	router.HandleFunc("/clear/", NewDashboardClearHandler(srv))
+	router.HandleFunc("/retry/", NewDashboardRetryHandler(srv, h))
 	return router
 }
 

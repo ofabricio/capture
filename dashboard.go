@@ -233,7 +233,7 @@ const dashboardHTML = `
             $scope.show = item => {
                 $scope.selectedItem.id = item.id;
                 $scope.selectedItem.status = item.status;
-                $http.get(<<.DashboardInfoPath>> + item.id).then(r => {
+                $http.get(window.location.href + '/info/' + item.id).then(r => {
                     $scope.selectedItem.request  = r.data.request;
                     $scope.selectedItem.response = r.data.response;
                     $scope.selectedItem.curl = r.data.curl;
@@ -247,7 +247,7 @@ const dashboardHTML = `
             }
 
             $scope.clearDashboard = () => {
-                $http.get(<<.DashboardClearPath>>)
+                $http.get(window.location.href + '/clear/')
                     .then(() => $scope.selectedItem = {});
             }
 
@@ -266,7 +266,7 @@ const dashboardHTML = `
             }
 
             $scope.retry = () => {
-                $http.get(<<.DashboardRetryPath>> + $scope.selectedItem.id)
+                $http.get(window.location.href + '/retry/' + $scope.selectedItem.id)
                     .then(() => $scope.show($scope.items[$scope.items.length - 1]));
             }
 
@@ -279,7 +279,7 @@ const dashboardHTML = `
                 $scope.selectedItem[key] = data.replace(body, prettyBody);
             }
 
-            const evt = new EventSource(<<.DashboardConnPath>>);
+            const evt = new EventSource(window.location.href + '/conn/');
             evt.addEventListener('captures', e => {
                 $scope.items = JSON.parse(e.data);
                 if (!$scope.items.find(i => i.id == $scope.selectedItem.id)) {
