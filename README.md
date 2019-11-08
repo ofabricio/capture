@@ -6,11 +6,6 @@ proxying the response back to the client, while showing them in a dashboard
 [![Github Release](https://img.shields.io/github/release/ofabricio/capture.svg)](https://github.com/ofabricio/capture/releases)
 
 
-## Binaries / Executables
-
-For ready-to-use executables for *Windows*, *Linux* and *Mac*, see [Releases](https://github.com/ofabricio/capture/releases) page
-
-
 ## Running
 
     ./capture -url=https://example.com/
