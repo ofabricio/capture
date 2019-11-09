@@ -11,7 +11,7 @@ proxying the response back to the client, while showing them in a dashboard
     ./capture -url=https://example.com/
 
 
-### Settings
+#### Settings
 
 | param        | description |
 |--------------|-------------|
