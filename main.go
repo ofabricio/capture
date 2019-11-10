@@ -32,19 +32,13 @@ func main() {
 	fmt.Println()
 
 	srv := NewCaptureService(config.MaxCaptures)
-	handler := NewRecorderHandler(srv, NewPluginHandler(NewProxyHandler(config.TargetURL)))
+	hdr := NewRecorderHandler(srv, NewPluginHandler(NewProxyHandler(config.TargetURL)))
 
 	go func() {
-		fmt.Println(http.ListenAndServe(":"+config.DashboardPort, NewDashboardHandler(handler, srv, config)))
+		fmt.Println(http.ListenAndServe(":"+config.DashboardPort, NewDashboardHandler(hdr, srv, config)))
 		os.Exit(1)
 	}()
-	fmt.Println(http.ListenAndServe(":"+config.ProxyPort, NewCaptureHandler(handler)))
-}
-
-func NewCaptureHandler(h http.HandlerFunc) http.Handler {
-	router := http.NewServeMux()
-	router.HandleFunc("/", h)
-	return router
+	fmt.Println(http.ListenAndServe(":"+config.ProxyPort, hdr))
 }
 
 func NewDashboardHandler(h http.HandlerFunc, srv *CaptureService, config Config) http.Handler {
