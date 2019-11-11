@@ -50,7 +50,7 @@ Via docker:
 
     git clone --depth 1 https://github.com/ofabricio/capture.git
     cd capture
-    docker run --rm -v "${PWD}:/src" -w /src -e GOOS=darwin golang:latest go build -o capture .
+    docker run --rm -v $(pwd):/src -w /src -e GOOS=darwin golang:alpine go build -o capture 
 
 Now you have an executable binary in your directory
 
