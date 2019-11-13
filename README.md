@@ -2,7 +2,7 @@
 **Capture** is a reverse proxy that takes an incoming HTTP request and sends it to another server,
 proxying the response back to the client, while showing them in a dashboard
 
-[![Build Status](https://travis-ci.com/ofabricio/capture.svg?branch=master)](https://travis-ci.com/ofabricio/capture)
+[![Build Status](https://github.com/ofabricio/capture/workflows/Build/badge.svg)](https://github.com/ofabricio/capture/actions?query=workflow%3ABuild)
 [![Github Release](https://img.shields.io/github/release/ofabricio/capture.svg)](https://github.com/ofabricio/capture/releases)
 
 
