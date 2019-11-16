@@ -84,91 +84,49 @@ func PostRequest() TestCase {
 	}
 }
 
-func TestDumpRequest(t *testing.T) {
-	msg := "hello"
-
-	// given
-	req, err := http.NewRequest(http.MethodPost, "http://localhost:9000/", strings.NewReader(msg))
-	if err != nil {
-		t.Errorf("Could not create request: %v", err)
+func ExampleDump() {
+	c := &Capture{
+		Req: Req{
+			Proto:  "HTTP/1.1",
+			Url:    "http://localhost/hello",
+			Path:   "/hello",
+			Method: "GET",
+			Header: map[string][]string{"Content-Encoding": {"none"}},
+			Body:   []byte(`hello`),
+		},
+		Res: Res{
+			Proto:  "HTTP/1.1",
+			Header: map[string][]string{"Content-Encoding": {"gzip"}},
+			Body:   gzipStr("gziped hello"),
+			Status: "200 OK",
+		},
 	}
+	got := dump(c)
 
-	// when
-	body, err := dumpRequest(req)
+	fmt.Println(got.Request)
+	fmt.Println(got.Response)
+	fmt.Println(got.Curl)
 
-	// then
-	if err != nil {
-		t.Errorf("Dump Request error: %v", err)
-	}
-	if !strings.Contains(string(body), msg) {
-		t.Errorf("Dump Request is not '%s'", msg)
-	}
+	// Output:
+	// GET /hello HTTP/1.1
+	//
+	// Content-Encoding: none
+	//
+	// hello
+	// HTTP/1.1 200 OK
+	//
+	// Content-Encoding: gzip
+	//
+	// gziped hello
+	// curl -X GET http://localhost/hello \
+	//   -H 'Content-Encoding: none' \
+	//   -d 'hello'
 }
 
-func TestDumpRequestGzip(t *testing.T) {
-	msg := "hello"
-
-	// given
-	req, err := http.NewRequest(http.MethodPost, "http://localhost:9000/", strings.NewReader(gzipStr(msg)))
-	req.Header.Set("Content-Encoding", "gzip")
-	if err != nil {
-		t.Errorf("Could not create request: %v", err)
-	}
-
-	// when
-	body, err := dumpRequest(req)
-
-	// then
-	if err != nil {
-		t.Errorf("Dump Request Gzip error: %v", err)
-	}
-	if !strings.Contains(string(body), msg) {
-		t.Errorf("Dump Request Gzip is not '%s'", msg)
-	}
-}
-
-func TestDumpResponse(t *testing.T) {
-	msg := "hello"
-
-	// given
-	res := &http.Response{Body: ioutil.NopCloser(strings.NewReader(msg))}
-
-	// when
-	body, err := dumpResponse(res)
-
-	// then
-	if err != nil {
-		t.Errorf("Dump Response Error: %v", err)
-	}
-	if !strings.Contains(string(body), msg) {
-		t.Errorf("Dump Response is not '%s'", msg)
-	}
-}
-
-func TestDumpResponseGzip(t *testing.T) {
-	msg := "hello"
-
-	// given
-	h := make(http.Header)
-	h.Set("Content-Encoding", "gzip")
-	res := &http.Response{Header: h, Body: ioutil.NopCloser(strings.NewReader(gzipStr(msg)))}
-
-	// when
-	body, err := dumpResponse(res)
-
-	// then
-	if err != nil {
-		t.Errorf("Dump Response error: %v", err)
-	}
-	if !strings.Contains(string(body), msg) {
-		t.Error("Not hello")
-	}
-}
-
-func gzipStr(str string) string {
+func gzipStr(str string) []byte {
 	var buff bytes.Buffer
 	g := gzip.NewWriter(&buff)
 	io.WriteString(g, str)
 	g.Close()
-	return buff.String()
+	return buff.Bytes()
 }

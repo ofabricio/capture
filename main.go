@@ -15,10 +15,9 @@ import (
 	"path"
 	"path/filepath"
 	"plugin"
+	"sort"
 	"strings"
 	"time"
-
-	"github.com/ofabricio/curl"
 )
 
 // StatusInternalProxyError is any unknown proxy error
@@ -105,12 +104,8 @@ func NewDashboardRetryHandler(srv *CaptureService, next http.HandlerFunc) http.H
 		id := path.Base(req.URL.Path)
 		capture := srv.Find(id)
 
-		reqBody, _ := ioutil.ReadAll(capture.Req.Body)
-		req.Body.Close()
-		capture.Req.Body = ioutil.NopCloser(bytes.NewReader(reqBody))
-
 		// creates a new request based on the current one
-		r, _ := http.NewRequest(capture.Req.Method, capture.Req.URL.String(), bytes.NewReader(reqBody))
+		r, _ := http.NewRequest(capture.Req.Method, capture.Req.Url, bytes.NewReader(capture.Req.Body))
 		r.Header = capture.Req.Header
 
 		next.ServeHTTP(rw, r)
@@ -169,31 +164,50 @@ func NewPluginHandler(next http.HandlerFunc) http.HandlerFunc {
 
 // NewRecorderHandler records all the traffic data
 func NewRecorderHandler(srv *CaptureService, next http.HandlerFunc) http.HandlerFunc {
-	return func(rw http.ResponseWriter, req *http.Request) {
+	return func(rw http.ResponseWriter, r *http.Request) {
 
-		// save req body for later
-		reqBody, _ := ioutil.ReadAll(req.Body)
-		req.Body.Close()
-		req.Body = ioutil.NopCloser(bytes.NewReader(reqBody))
+		// Save req body for later.
+		reqBody, _ := ioutil.ReadAll(r.Body)
+		r.Body.Close()
+		r.Body = ioutil.NopCloser(bytes.NewReader(reqBody))
 
 		rec := httptest.NewRecorder()
 
+		// Record Roundtrip.
+
 		start := time.Now()
 
-		next.ServeHTTP(rec, req)
+		next.ServeHTTP(rec, r)
 
 		elapsed := time.Since(start).Truncate(time.Millisecond) / time.Millisecond
 
-		// respond
+		resBody := rec.Body.Bytes()
+
+		// Respond to client with recorded response.
+
 		for k, v := range rec.Header() {
 			rw.Header()[k] = v
 		}
 		rw.WriteHeader(rec.Code)
-		rw.Write(rec.Body.Bytes())
+		rw.Write(resBody)
 
-		// record req and res
-		req.Body = ioutil.NopCloser(bytes.NewReader(reqBody))
-		res := rec.Result()
+		// Save req and res data.
+
+		req := Req{
+			Proto:  r.Proto,
+			Method: r.Method,
+			Url:    r.URL.String(),
+			Path:   r.URL.Path,
+			Header: r.Header,
+			Body:   reqBody,
+		}
+		res := Res{
+			Proto:  rec.Result().Proto,
+			Status: rec.Result().Status,
+			Code:   rec.Code,
+			Header: rec.Header(),
+			Body:   resBody,
+		}
 		srv.Insert(Capture{Req: req, Res: res, Elapsed: elapsed})
 	}
 }
@@ -216,68 +230,55 @@ func NewProxyHandler(URL string) http.HandlerFunc {
 }
 
 func dump(c *Capture) CaptureDump {
-	reqDump, err := dumpRequest(c.Req)
-	if err != nil {
-		fmt.Printf("could not dump request: %v\n", err)
+	req := c.Req
+	res := c.Res
+	return CaptureDump{
+		Request:  dumpContent(req.Header, req.Body, "%s %s %s\n\n", req.Method, req.Path, req.Proto),
+		Response: dumpContent(res.Header, res.Body, "%s %s\n\n", res.Proto, res.Status),
+		Curl:     dumpCurl(req),
 	}
-	resDump, err := dumpResponse(c.Res)
-	if err != nil {
-		fmt.Printf("could not dump response: %v\n", err)
-	}
-	strcurl, err := curl.New(c.Req)
-	if err != nil {
-		fmt.Printf("could not convert request to curl: %v\n", err)
-	}
-	return CaptureDump{Request: string(reqDump), Response: string(resDump), Curl: strcurl}
 }
 
-func dumpRequest(req *http.Request) ([]byte, error) {
-	if req.Header.Get("Content-Encoding") == "gzip" {
-		return dumpGzipRequest(req)
+func dumpContent(header http.Header, body []byte, format string, args ...interface{}) string {
+	b := strings.Builder{}
+	fmt.Fprintf(&b, format, args...)
+	dumpHeader(&b, header)
+	b.WriteString("\n")
+	dumpBody(&b, header, body)
+	return b.String()
+}
+
+func dumpHeader(dst *strings.Builder, header http.Header) {
+	var headers []string
+	for k, v := range header {
+		headers = append(headers, fmt.Sprintf("%s: %s\n", k, strings.Join(v, " ")))
 	}
-	return httputil.DumpRequest(req, true)
-}
-
-func dumpGzipRequest(req *http.Request) ([]byte, error) {
-
-	reqBody, _ := ioutil.ReadAll(req.Body)
-	req.Body.Close()
-	req.Body = ioutil.NopCloser(bytes.NewReader(reqBody))
-
-	reader, _ := gzip.NewReader(bytes.NewReader(reqBody))
-	req.Body = ioutil.NopCloser(reader)
-	reqDump, err := httputil.DumpRequest(req, true)
-	req.Body = ioutil.NopCloser(bytes.NewReader(reqBody))
-	return reqDump, err
-}
-
-func dumpResponse(res *http.Response) ([]byte, error) {
-	if res.StatusCode == StatusInternalProxyError {
-		return dumpResponseBody(res)
+	sort.Strings(headers)
+	for _, v := range headers {
+		dst.WriteString(v)
 	}
-	if res.Header.Get("Content-Encoding") == "gzip" {
-		return dumpGzipResponse(res)
+}
+
+func dumpBody(dst *strings.Builder, header http.Header, body []byte) {
+	reqBody := body
+	if header.Get("Content-Encoding") == "gzip" {
+		reader, _ := gzip.NewReader(bytes.NewReader(body))
+		reqBody, _ = ioutil.ReadAll(reader)
 	}
-	return httputil.DumpResponse(res, true)
+	dst.Write(reqBody)
 }
 
-// Dumps only the body when we have an proxy error.
-// This body is set in NewProxyHandler() in proxy.ErrorHandler
-func dumpResponseBody(res *http.Response) ([]byte, error) {
-	resBody, _ := ioutil.ReadAll(res.Body)
-	res.Body.Close()
-	res.Body = ioutil.NopCloser(bytes.NewReader(resBody))
-	return resBody, nil
-}
-
-func dumpGzipResponse(res *http.Response) ([]byte, error) {
-	resBody, _ := ioutil.ReadAll(res.Body)
-	res.Body.Close()
-	res.Body = ioutil.NopCloser(bytes.NewReader(resBody))
-
-	reader, _ := gzip.NewReader(bytes.NewReader(resBody))
-	res.Body = ioutil.NopCloser(reader)
-	resDump, err := httputil.DumpResponse(res, true)
-	res.Body = ioutil.NopCloser(bytes.NewReader(resBody))
-	return resDump, err
+func dumpCurl(req Req) string {
+	var b strings.Builder
+	// build cmd
+	fmt.Fprintf(&b, "curl -X %s %s", req.Method, req.Url)
+	// build headers
+	for k, v := range req.Header {
+		fmt.Fprintf(&b, " \\\n  -H '%s: %s'", k, strings.Join(v, " "))
+	}
+	// build body
+	if len(req.Body) > 0 {
+		fmt.Fprintf(&b, " \\\n  -d '%s'", req.Body)
+	}
+	return b.String()
 }

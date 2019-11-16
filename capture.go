@@ -20,10 +20,34 @@ type CaptureService struct {
 // Capture is our traffic data
 type Capture struct {
 	ID  int
-	Req *http.Request
-	Res *http.Response
+	Req Req
+	Res Res
 	// Elapsed time of the request, in milliseconds
 	Elapsed time.Duration
+}
+
+// CaptureDump is all the dumps shown in the dashboard
+type CaptureDump struct {
+	Request  string `json:"request"`
+	Response string `json:"response"`
+	Curl     string `json:"curl"`
+}
+
+type Req struct {
+	Proto  string
+	Method string
+	Url    string
+	Path   string
+	Header http.Header
+	Body   []byte
+}
+
+type Res struct {
+	Proto  string
+	Status string
+	Code   int
+	Header http.Header
+	Body   []byte
 }
 
 // DashboardItem is an item in the dashboard's list
@@ -34,13 +58,6 @@ type DashboardItem struct {
 	Status int    `json:"status"`
 
 	Elapsed time.Duration `json:"elapsed"`
-}
-
-// CaptureDump is all the dumps shown in the dashboard
-type CaptureDump struct {
-	Request  string `json:"request"`
-	Response string `json:"response"`
-	Curl     string `json:"curl"`
 }
 
 // NewCaptureService creates a new service of captures
@@ -97,9 +114,9 @@ func (s *CaptureService) DashboardItems() []DashboardItem {
 	for i, capture := range s.items {
 		metadatas[i] = DashboardItem{
 			ID:      capture.ID,
-			Path:    capture.Req.URL.Path,
+			Path:    capture.Req.Path,
 			Method:  capture.Req.Method,
-			Status:  capture.Res.StatusCode,
+			Status:  capture.Res.Code,
 			Elapsed: capture.Elapsed,
 		}
 	}
