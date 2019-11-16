@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"html/template"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
@@ -167,9 +168,9 @@ func NewRecorderHandler(srv *CaptureService, next http.HandlerFunc) http.Handler
 	return func(rw http.ResponseWriter, r *http.Request) {
 
 		// Save req body for later.
-		reqBody, _ := ioutil.ReadAll(r.Body)
-		r.Body.Close()
-		r.Body = ioutil.NopCloser(bytes.NewReader(reqBody))
+
+		reqBody := &bytes.Buffer{}
+		r.Body = ioutil.NopCloser(io.TeeReader(r.Body, reqBody))
 
 		rec := httptest.NewRecorder()
 
@@ -199,7 +200,7 @@ func NewRecorderHandler(srv *CaptureService, next http.HandlerFunc) http.Handler
 			Url:    r.URL.String(),
 			Path:   r.URL.Path,
 			Header: r.Header,
-			Body:   reqBody,
+			Body:   reqBody.Bytes(),
 		}
 		res := Res{
 			Proto:  rec.Result().Proto,
