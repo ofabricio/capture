@@ -6,7 +6,7 @@ const dashboardHTML = `
 <head>
     <meta charset="utf-8">
     <link rel="icon" href="data:;base64,iVBORw0KGgo=">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/angular.js/1.7.2/angular.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vue@2.6.0"></script>
     <link href="https://fonts.googleapis.com/css?family=Inconsolata:400,700" rel="stylesheet">
     <title>Dashboard</title>
     <style>
@@ -180,18 +180,18 @@ const dashboardHTML = `
 </head>
 <body>
 
-<div class="dashboard" ng-controller="controller">
+<div class="dashboard" id="app">
 
     <div class="list">
         <div class="controls">
-            <button ng-disabled="items.length == 0" ng-click="clearDashboard()">clear</button>
+            <button :disabled="items.length == 0" @click="clearDashboard">clear</button>
         </div>
         <div class="list-inner">
-            <div class="list-item" ng-repeat="item in items | orderBy: '-id' track by $index" ng-click="show(item)"
-                 ng-class="{selected: selectedItem.id == item.id}">
-                <span class="method" ng-class="item.method">{{item.method}}</span>
+            <div class="list-item" v-for="item in items" :key="item.id" @click="show(item)"
+                 :class="{selected: selectedItem.id == item.id}">
+                <span class="method" :class="item.method">{{item.method}}</span>
                 <span class="path">&lrm;{{item.path}}&lrm;</span>
-                <span class="status" ng-class="statusColor(item)">{{item.status == 999 ? 'failed' : item.status}}</span>
+                <span class="status" :class="statusColor(item)">{{item.status == 999 ? 'failed' : item.status}}</span>
                 <span class="time">{{item.elapsed}}ms</span>
             </div>
         </div>
@@ -199,9 +199,9 @@ const dashboardHTML = `
 
     <div class="req">
         <div class="controls">
-            <button ng-disabled="!canPrettifyBody('request')" ng-click="prettifyBody('request')">prettify</button>
-            <button ng-disabled="selectedItem.id == null" ng-click="copyCurl()">curl</button>
-            <button ng-disabled="selectedItem.id == null" ng-click="retry()">retry</button>
+            <button :disabled="!canPrettifyBody('request')" @click="prettifyBody('request')">prettify</button>
+            <button :disabled="selectedItem.id == null" @click="copyCurl">curl</button>
+            <button :disabled="selectedItem.id == null" @click="retry">retry</button>
         </div>
         <div class="req-inner">
             <pre>{{selectedItem.request}}</pre>
@@ -210,14 +210,14 @@ const dashboardHTML = `
 
     <div class="res">
         <div class="controls">
-            <button ng-disabled="!canPrettifyBody('response')" ng-click="prettifyBody('response')">prettify</button>
+            <button :disabled="!canPrettifyBody('response')" @click="prettifyBody('response')">prettify</button>
         </div>
         <div class="res-inner">
-            <pre ng-class="{error: selectedItem.status == 999}">{{selectedItem.response}}</pre>
+            <pre :class="{error: selectedItem.status == 999}">{{selectedItem.response}}</pre>
         </div>
     </div>
 
-    <div class="welcome" ng-show="items.length == 0">
+    <div class="welcome" v-if="items.length == 0">
         <p>Waiting for requests on http://localhost:<<.ProxyPort>>/<br>
         <span>Proxying <<.TargetURL>></span></p>
     </div>
@@ -225,74 +225,67 @@ const dashboardHTML = `
 </div>
 
 <script type="text/javascript">
-    angular.module('app', [])
-        .controller('controller', function($scope, $http) {
-
-            $scope.selectedItem = {};
-
-            $scope.show = item => {
-                $scope.selectedItem.id = item.id;
-                $scope.selectedItem.status = item.status;
-                $http.get(window.location.href + '/info/' + item.id).then(r => {
-                    $scope.selectedItem.request  = r.data.request;
-                    $scope.selectedItem.response = r.data.response;
-                    $scope.selectedItem.curl = r.data.curl;
-                });
-            }
-
-            $scope.statusColor = item => {
-                if (item.status < 300) return 'ok';
-                if (item.status < 400) return 'warn';
-                return 'error';
-            }
-
-            $scope.clearDashboard = () => {
-                $http.get(window.location.href + '/clear/')
-                    .then(() => $scope.selectedItem = {});
-            }
-
-            $scope.canPrettifyBody = name => {
-                if (!$scope.selectedItem[name]) return false;
-                return $scope.selectedItem[name].indexOf('Content-Type: application/json') != -1;
-            }
-
-            $scope.copyCurl = () => {
-                let e = document.createElement('textarea');
-                e.value = $scope.selectedItem.curl;
-                document.body.appendChild(e);
-                e.select();
-                document.execCommand('copy');
-                document.body.removeChild(e);
-            }
-
-            $scope.retry = () => {
-                $http.get(window.location.href + '/retry/' + $scope.selectedItem.id)
-                    .then(() => $scope.show($scope.items[$scope.items.length - 1]));
-            }
-
-            $scope.prettifyBody = key => {
-                let regex = /\n([\{\[](.*\s*)*[\}\]])/;
-                let data = $scope.selectedItem[key];
-                let match = regex.exec(data);
-                let body = match[1];
-                let prettyBody = JSON.stringify(JSON.parse(body), null, '    ');
-                $scope.selectedItem[key] = data.replace(body, prettyBody);
-            }
-
-            const evt = new EventSource(window.location.href + '/conn/');
-            evt.addEventListener('captures', e => {
-                $scope.items = JSON.parse(e.data);
-                if (!$scope.items.find(i => i.id == $scope.selectedItem.id)) {
-                    $scope.selectedItem = {}
-                };
-                $scope.$apply();
-            });
-            evt.onerror = () => {
-                $scope.items = [];
-                $scope.selectedItem = {};
-                $scope.$apply();
-            };
-        });
+var app = new Vue({
+	el: '#app',
+	data: {
+		items: [],
+		selectedItem: {},
+	},
+	created() {
+		this.setupStream();
+	},
+	methods: {
+		setupStream() {
+			let es = new EventSource(window.location.href + '/conn/');
+			es.addEventListener('captures', event => {
+				this.items = JSON.parse(event.data).reverse();
+			});
+			es.onerror = () => {
+				this.items = [];
+				this.selectedItem = {};
+			};
+		},
+		async show(item) {
+			this.selectedItem = { ...this.selectedItem, id: item.id, status: item.status };
+			let resp = await fetch(window.location.href + '/info/' + item.id);
+			let data = await resp.json();
+			this.selectedItem = { ...this.selectedItem,  ...data };
+		},
+		statusColor(item) {
+			if (item.status < 300) return 'ok';
+			if (item.status < 400) return 'warn';
+			return 'error';
+		},
+		async clearDashboard() {
+			this.selectedItem = {};
+			await fetch(window.location.href + '/clear/');
+		},
+		canPrettifyBody(name) {
+			if (!this.selectedItem[name]) return false;
+			return this.selectedItem[name].indexOf('Content-Type: application/json') != -1;
+		},
+		prettifyBody(key) {
+			let regex = /\n([\{\[](.*\s*)*[\}\]])/;
+			let data = this.selectedItem[key];
+			let match = regex.exec(data);
+			let body = match[1];
+			let prettyBody = JSON.stringify(JSON.parse(body), null, '    ');
+			this.selectedItem[key] = data.replace(body, prettyBody);
+		},
+		copyCurl() {
+			let e = document.createElement('textarea');
+			e.value = this.selectedItem.curl;
+			document.body.appendChild(e);
+			e.select();
+			document.execCommand('copy');
+			document.body.removeChild(e);
+		},
+		async retry() {
+			await fetch(window.location.href + '/retry/' + this.selectedItem.id);
+			this.show(this.items[0]);
+		},
+	},
+});
 </script>
 </body>
 </html>`
