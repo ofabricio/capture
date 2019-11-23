@@ -6,10 +6,13 @@ const dashboardHTML = `
 <head>
 	<meta charset="utf-8">
 	<link rel="icon" href="data:;base64,iVBORw0KGgo=">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	<script src="https://cdn.jsdelivr.net/npm/vue@2.6.0"></script>
 	<link href="https://fonts.googleapis.com/css?family=Inconsolata:400,700" rel="stylesheet">
 	<title>Dashboard</title>
 	<style>
+
+	[v-cloak] { display: none !important }
 
 	:root {
 		--bg: #282c34;
@@ -34,6 +37,8 @@ const dashboardHTML = `
 
 	* { padding: 0; margin: 0; box-sizing: border-box }
 
+	div { position: relative }
+
 	html, body, .dashboard {
 		height: 100%;
 		font-family: 'Inconsolata', monospace;
@@ -42,24 +47,28 @@ const dashboardHTML = `
 		background: var(--bg);
 	}
 
-	body { padding: .5rem; }
-
-	div { display: flex; position: relative }
-
-	.list, .req, .res {
-		flex: 0 0 37%;
-		overflow: auto;
-		flex-direction: column;
-		padding: .5rem;
+	.dashboard {
+		display: grid;
+		grid-template-columns: .6fr 1fr 1fr;
+		grid-template-rows: 1fr;
+		grid-gap: .5rem;
 	}
 
-	.list, .req { padding-right: .5rem; }
-	.req, .res { padding-left: .5rem; }
+	.list, .req, .res {
+		display: grid;
+		grid-template-rows: auto 1fr;
+		grid-gap: .5rem;
+	}
+
+	body { padding: .5rem; }
+
+	.list, .req, .res {
+		overflow: auto;
+	}
 
 	.list-inner, .req-inner, .res-inner {
 		overflow-x: hidden;
 		overflow-y: auto;
-		flex: 1;
 	}
 
 	.req-inner, .res-inner {
@@ -70,23 +79,25 @@ const dashboardHTML = `
 		color: var(--req-res-fg);
 	}
 
-	.list { flex: 0 0 26% }
-	.list-inner { flex-direction: column }
+	.list-inner {
+		display: grid;
+		grid-template-rows: auto;
+		grid-gap: .5rem;
+		align-content: start;
+	}
+
 	.list-item {
-		flex-shrink: 0;
+		display: grid;
+		grid-template-columns: auto 1fr auto auto;
+		grid-gap: .5rem;
 		font-size: 1.2em;
-		font-weight: 400;
-		height: 50px;
 		padding: 1rem;
 		background: var(--list-item-bg);
 		color: var(--list-item-fg);
 		cursor: pointer;
-		margin-bottom: .5rem;
-		align-items: center;
 		transition: background .15s linear;
 	}
-	.list-item:hover { }
-	.list-item, .req-inner, .res-inner {
+	.list-item, .req, .res {
 		box-shadow: 0px 2px 5px 0px rgba(0, 0, 0, 0.1);
 	}
 	.list-item.selected {
@@ -102,13 +113,12 @@ const dashboardHTML = `
 	.warn   { color: var(--status-warn) }
 	.error  { color: var(--status-error) }
 
-	.method { font-size: 0.7em; margin-right: 1rem; padding: .25rem .5rem }
-	.status { font-size: 0.8em; padding-left: 1rem }
-	.path   { font-size: 0.8em; flex: 1; text-align: right; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; direction: rtl }
-	.time   { font-size: 0.7em; padding-left: 1rem; color: var(--disabled) }
+	.method { font-size: 0.7em; text-align: left; }
+	.status { font-size: 0.8em; }
+	.path   { font-size: 0.8em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; direction: rtl }
+	.time   { font-size: 0.7em; color: var(--disabled) }
 
 	pre {
-		flex: 1;
 		word-break: normal; word-wrap: break-word; white-space: pre-wrap;
 		z-index: 2;
 		padding: 1rem;
@@ -117,27 +127,29 @@ const dashboardHTML = `
 		font-weight: 400;
 		line-height: 1.2em;
 	}
-	.req:before, .res:before {
-		bottom: .5rem;
-		left: 1rem;
-		font-size: 5em;
-		color: var(--bg);
+
+	.corner {
 		position: absolute;
-		font-weight: 700;
-		z-index: 1;
-	}
-	.req:before {
-		content: "↑REQUEST";
-	}
-	.res:before {
-		content: "↓RESPONSE";
+		top: 0;
+		right: 0;
+		width: 80px;
+		height: 50px;
+		background: var(--bg);
+		color: var(--disabled);
+		display: grid;
+		align-content: end;
+		justify-content: center;
+		transform: rotate(45deg) translate(10px, -40px);
+		padding-bottom: 4px;
+		font-size: .8em;
+		user-select: none;
 	}
 
 	.controls {
-		margin-bottom: .5rem;
-	}
-	.controls > * {
-		margin-right: .5rem;
+		display: grid;
+		grid-template-columns: repeat(5, 1fr);
+		grid-gap: .5rem;
+		justify-content: start;
 	}
 	button {
 		background: var(--btn-bg);
@@ -158,6 +170,7 @@ const dashboardHTML = `
 	}
 
 	.welcome {
+		display: grid;
 		position: absolute;
 		background: rgba(0, 0, 0, .5);
 		justify-content: center;
@@ -171,16 +184,31 @@ const dashboardHTML = `
 		transform: translate(0%, -50%);
 		padding: 3rem;
 		box-shadow: 0px 0px 20px 10px rgba(0, 0, 0, 0.1);
+		word-break: break-word;
 	}
 	.welcome span {
 		font-size: .5em;
 		color: #999;
 	}
+
+	@media only screen and (max-width: 1024px) {
+		.dashboard { grid-template-columns: .7fr 1fr; grid-template-rows: 1fr 1fr }
+		.list { grid-row: 1 / 3 }
+		.req { grid-column: 2 }
+		.res { grid-column: 2; grid-row: 2 }
+		.welcome { font-size: 1.5em }
+	}
+	@media only screen and (max-width: 484px) {
+		.dashboard { grid-template-columns: 1fr; grid-template-rows: 1fr 1fr 1fr; column-gap: 0 }
+		.list { grid-area: 1 / 2 }
+		.req { grid-row: 2 }
+		.res { grid-row: 3 }
+	}
 	</style>
 </head>
 <body>
 
-<div class="dashboard" id="app">
+<div class="dashboard" id="app" v-cloak>
 
 	<div class="list">
 		<div class="controls">
@@ -191,8 +219,8 @@ const dashboardHTML = `
 				 :class="{selected: selectedItem.id == item.id}">
 				<span class="method" :class="item.method">{{item.method}}</span>
 				<span class="path">&lrm;{{item.path}}&lrm;</span>
-				<span class="status" :class="statusColor(item)">{{item.status == 999 ? 'failed' : item.status}}</span>
 				<span class="time">{{item.elapsed}}ms</span>
+				<span class="status" :class="statusColor(item)">{{item.status == 999 ? 'failed' : item.status}}</span>
 			</div>
 		</div>
 	</div>
@@ -204,6 +232,7 @@ const dashboardHTML = `
 			<button :disabled="selectedItem.id == null" @click="retry">retry</button>
 		</div>
 		<div class="req-inner">
+			<div class="corner">req</div>
 			<pre>{{selectedItem.request}}</pre>
 		</div>
 	</div>
@@ -213,11 +242,12 @@ const dashboardHTML = `
 			<button :disabled="!canPrettifyBody('response')" @click="prettifyBody('response')">prettify</button>
 		</div>
 		<div class="res-inner">
+			<div class="corner">res</div>
 			<pre :class="{error: selectedItem.status == 999}">{{selectedItem.response}}</pre>
 		</div>
 	</div>
 
-	<div class="welcome" v-if="items.length == 0">
+	<div class="welcome" v-show="items.length == 0">
 		<p>Waiting for requests on http://localhost:<<.ProxyPort>>/<br>
 		<span>Proxying <<.TargetURL>></span></p>
 	</div>
