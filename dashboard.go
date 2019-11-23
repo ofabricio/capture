@@ -113,16 +113,14 @@ const dashboardHTML = `
 	.warn   { color: var(--status-warn) }
 	.error  { color: var(--status-error) }
 
-	.method { font-size: 0.7em; text-align: left; }
+	.method { font-size: 0.7em; }
 	.status { font-size: 0.8em; }
 	.path   { font-size: 0.8em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; direction: rtl }
 	.time   { font-size: 0.7em; color: var(--disabled) }
 
 	pre {
 		word-break: normal; word-wrap: break-word; white-space: pre-wrap;
-		z-index: 2;
 		padding: 1rem;
-		width: 100%;
 		font-family: inherit;
 		font-weight: 400;
 		line-height: 1.2em;
