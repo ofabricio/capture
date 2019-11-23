@@ -26,13 +26,6 @@ type Capture struct {
 	Elapsed time.Duration
 }
 
-// CaptureDump is all the dumps shown in the dashboard
-type CaptureDump struct {
-	Request  string `json:"request"`
-	Response string `json:"response"`
-	Curl     string `json:"curl"`
-}
-
 type Req struct {
 	Proto  string
 	Method string
@@ -48,6 +41,13 @@ type Res struct {
 	Code   int
 	Header http.Header
 	Body   []byte
+}
+
+// CaptureInfo is the capture info shown in the dashboard
+type CaptureInfo struct {
+	Request  string `json:"request"`
+	Response string `json:"response"`
+	Curl     string `json:"curl"`
 }
 
 // DashboardItem is an item in the dashboard's list

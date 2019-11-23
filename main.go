@@ -230,10 +230,10 @@ func NewProxyHandler(URL string) http.HandlerFunc {
 	}
 }
 
-func dump(c *Capture) CaptureDump {
+func dump(c *Capture) CaptureInfo {
 	req := c.Req
 	res := c.Res
-	return CaptureDump{
+	return CaptureInfo{
 		Request:  dumpContent(req.Header, req.Body, "%s %s %s\n\n", req.Method, req.Path, req.Proto),
 		Response: dumpContent(res.Header, res.Body, "%s %s\n\n", res.Proto, res.Status),
 		Curl:     dumpCurl(req),
