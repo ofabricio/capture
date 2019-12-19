@@ -226,7 +226,7 @@ const dashboardHTML = `
 	<div class="req">
 		<div class="controls">
 			<button :disabled="!canPrettifyBody('request')" @click="prettifyBody('request')">prettify</button>
-			<button :disabled="selectedItem.id == null" @click="copyCurl">curl</button>
+			<button :disabled="selectedItem.id == null" @click="copyCurl($event)" data-text="curl">curl</button>
 			<button :disabled="selectedItem.id == null" @click="retry">retry</button>
 		</div>
 		<div class="req-inner">
@@ -300,7 +300,8 @@ var app = new Vue({
 			let prettyBody = JSON.stringify(JSON.parse(body), null, '    ');
 			this.selectedItem[key] = data.replace(body, prettyBody);
 		},
-		copyCurl() {
+		copyCurl(event) {
+			this.changeText(event);
 			let e = document.createElement('textarea');
 			e.value = this.selectedItem.curl;
 			document.body.appendChild(e);
@@ -312,6 +313,12 @@ var app = new Vue({
 			await fetch(window.location.href + '/retry/' + this.selectedItem.id);
 			this.show(this.items[0]);
 		},
+		changeText(event) {
+			let elem = event.target;
+			let btnText = elem.getAttribute("data-text");
+			elem.innerText = "copied!";
+			setTimeout(() => elem.innerText = btnText, 400)
+		}
 	},
 });
 </script>
