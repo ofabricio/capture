@@ -264,7 +264,7 @@ var app = new Vue({
 	},
 	methods: {
 		setupStream() {
-			let es = new EventSource(window.location.href + '/conn/');
+			let es = new EventSource(window.location.href + 'conn/');
 			es.addEventListener('captures', event => {
 				this.items = JSON.parse(event.data).reverse();
 			});
@@ -275,7 +275,7 @@ var app = new Vue({
 		},
 		async show(item) {
 			this.selectedItem = { ...this.selectedItem, id: item.id, status: item.status };
-			let resp = await fetch(window.location.href + '/info/' + item.id);
+			let resp = await fetch(window.location.href + 'info/' + item.id);
 			let data = await resp.json();
 			this.selectedItem = { ...this.selectedItem,  ...data };
 		},
@@ -286,7 +286,7 @@ var app = new Vue({
 		},
 		async clearDashboard() {
 			this.selectedItem = {};
-			await fetch(window.location.href + '/clear/');
+			await fetch(window.location.href + 'clear/');
 		},
 		canPrettifyBody(name) {
 			if (!this.selectedItem[name]) return false;
