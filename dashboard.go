@@ -310,7 +310,8 @@ var app = new Vue({
 			document.body.removeChild(e);
 		},
 		async retry() {
-			await fetch(window.location.href + '/retry/' + this.selectedItem.id);
+			await fetch(window.location.href + 'retry/' + this.selectedItem.id,
+				{ headers: { 'Cache-Control': 'no-cache' }});
 			this.show(this.items[0]);
 		},
 		changeText(event) {
