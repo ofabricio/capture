@@ -50,11 +50,11 @@ Via docker:
 
     git clone --depth 1 https://github.com/ofabricio/capture.git
     cd capture
-    docker run --rm -v $(pwd):/src -w /src -e GOOS=darwin golang:alpine go build -o capture 
+    docker run --rm -v $(pwd):/src -w /src -e GOOS=darwin -e GOARCH=amd64 golang:alpine go build -o capture 
 
 Now you have an executable binary in your directory
 
-**Note:** you can change `GOOS=darwin` to `linux` or `windows`
+**Note:** you can change `GOOS=darwin` to `linux` or `windows` to create an executable for your corresponding Operating System
 
 ## Plugins
 
