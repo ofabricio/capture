@@ -25,20 +25,20 @@ import (
 const StatusInternalProxyError = 999
 
 func main() {
-	config := ReadConfig()
+	cfg := ReadConfig()
 
-	fmt.Printf("\nListening on http://localhost:%s", config.ProxyPort)
-	fmt.Printf("\nDashboard on http://localhost:%s", config.DashboardPort)
+	fmt.Printf("\nListening on http://localhost:%s", cfg.ProxyPort)
+	fmt.Printf("\nDashboard on http://localhost:%s", cfg.DashboardPort)
 	fmt.Println()
 
-	srv := NewCaptureService(config.MaxCaptures)
-	hdr := NewRecorderHandler(srv, NewPluginHandler(NewProxyHandler(config.TargetURL)))
+	srv := NewCaptureService(cfg.MaxCaptures)
+	hdr := NewRecorderHandler(srv, NewPluginHandler(NewProxyHandler(cfg.TargetURL)))
 
 	go func() {
-		fmt.Println(http.ListenAndServe(":"+config.DashboardPort, NewDashboardHandler(hdr, srv, config)))
+		fmt.Println(http.ListenAndServe(":"+cfg.DashboardPort, NewDashboardHandler(hdr, srv, cfg)))
 		os.Exit(1)
 	}()
-	fmt.Println(http.ListenAndServe(":"+config.ProxyPort, hdr))
+	fmt.Println(http.ListenAndServe(":"+cfg.ProxyPort, hdr))
 }
 
 func NewDashboardHandler(h http.HandlerFunc, srv *CaptureService, config Config) http.Handler {
