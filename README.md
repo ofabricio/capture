@@ -10,6 +10,10 @@ proxying the response back to the client, while showing them in a dashboard
 
     ./capture -url=https://example.com/
 
+or using Docker (see how to build the image below)
+
+    docker run -p 9000:9000 -p 9001:9001 capture -url=https://example.com/
+
 
 #### Settings
 
@@ -55,6 +59,12 @@ Via docker:
 Now you have an executable binary in your directory
 
 **Note:** you can change `GOOS=darwin` to `linux` or `windows` to create an executable for your corresponding Operating System
+
+Building a Docker image:
+
+    git clone --depth 1 https://github.com/ofabricio/capture.git
+    cd capture
+    docker build . -t capture
 
 ## Plugins
 
