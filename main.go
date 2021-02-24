@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"compress/gzip"
+	_ "embed"
 	"encoding/json"
 	"fmt"
 	"html/template"
@@ -23,6 +24,9 @@ import (
 
 // StatusInternalProxyError is any unknown proxy error
 const StatusInternalProxyError = 999
+
+//go:embed dashboard.html
+var dashboardHTML string
 
 func main() {
 	cfg := ReadConfig()
@@ -88,7 +92,7 @@ func NewDashboardClearHandler(srv *CaptureService) http.HandlerFunc {
 func NewDashboardHTMLHandler(config Config) http.HandlerFunc {
 	return func(rw http.ResponseWriter, req *http.Request) {
 		rw.Header().Add("Content-Type", "text/html")
-		t, err := template.New("dashboard template").Delims("<<", ">>").Parse(dashboardHTML)
+		t, err := template.New("dashboard template").Delims("{{{", "}}}").Parse(dashboardHTML)
 		if err != nil {
 			msg := fmt.Sprintf("could not parse dashboard html template: %v", err)
 			fmt.Println(msg)
