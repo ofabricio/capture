@@ -44,13 +44,13 @@ Manually:
 
     git clone --depth 1 https://github.com/ofabricio/capture.git
     cd capture
-    go build -o capture .
+    go build
 
 Via docker:
 
     git clone --depth 1 https://github.com/ofabricio/capture.git
     cd capture
-    docker run --rm -v $(pwd):/src -w /src -e GOOS=darwin -e GOARCH=amd64 golang:alpine go build -o capture 
+    docker run --rm -v $PWD:/src -w /src -e GOOS=darwin -e GOARCH=amd64 golang:alpine go build
 
 Now you have an executable binary in your directory.
 
