@@ -91,6 +91,15 @@ func NewDashboardClearHandler(srv *CaptureService) http.HandlerFunc {
 // NewDashboardHTMLHandler returns the dashboard html page
 func NewDashboardHTMLHandler(config Config) http.HandlerFunc {
 	return func(rw http.ResponseWriter, req *http.Request) {
+
+		// This redirect prevents accessing the dashboard page from paths other
+		// than the root path. This is important because the dashboard uses
+		// relative paths, so "/retry/" would become "/something/retry/".
+		if req.URL.Path != "/" {
+			http.Redirect(rw, req, "/", http.StatusTemporaryRedirect)
+			return
+		}
+
 		rw.Header().Add("Content-Type", "text/html")
 		t, err := template.New("dashboard template").Delims("{{{", "}}}").Parse(dashboardHTML)
 		if err != nil {

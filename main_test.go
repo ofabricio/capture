@@ -84,6 +84,24 @@ func PostRequest() TestCase {
 	}
 }
 
+func TestDashboardRedirect(t *testing.T) {
+
+	// Given.
+	req, _ := http.NewRequest(http.MethodGet, "/something/", nil)
+	rec := httptest.NewRecorder()
+
+	// When.
+	NewDashboardHTMLHandler(Config{}).ServeHTTP(rec, req)
+
+	// Then.
+	if rec.Code != http.StatusTemporaryRedirect {
+		t.Errorf("Wrong response code: got %d, want %d", rec.Code, http.StatusTemporaryRedirect)
+	}
+	if loc := rec.Header().Get("Location"); loc != "/" {
+		t.Errorf("Wrong redirect path: got '%s', want '/'", loc)
+	}
+}
+
 func ExampleDump() {
 	c := &Capture{
 		Req: Req{
