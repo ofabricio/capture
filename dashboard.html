@@ -58,7 +58,7 @@
 			display: grid;
 			grid-template-columns: .6fr 1fr 1fr;
 			grid-template-rows: 1fr;
-			grid-gap: .5rem;
+			gap: .5rem;
 		}
 
 		.list,
@@ -66,7 +66,7 @@
 		.res {
 			display: grid;
 			grid-template-rows: auto 1fr;
-			grid-gap: .5rem;
+			gap: .5rem;
 		}
 
 		body {
@@ -107,14 +107,14 @@
 		.list-inner {
 			display: grid;
 			grid-template-rows: auto;
-			grid-gap: .5rem;
+			gap: .5rem;
 			align-content: start;
 		}
 
 		.list-item {
 			display: grid;
 			grid-template-columns: auto 1fr auto auto;
-			grid-gap: .5rem;
+			gap: .5rem;
 			font-size: 1.2em;
 			padding: 1rem;
 			background: var(--list-item-bg);
@@ -187,8 +187,7 @@
 		}
 
 		pre {
-			word-break: normal;
-			word-wrap: break-word;
+			word-break: break-all;
 			white-space: pre-wrap;
 			padding: 1rem;
 			font-family: inherit;
@@ -216,7 +215,7 @@
 		.controls {
 			display: grid;
 			grid-template-columns: repeat(5, 1fr);
-			grid-gap: .5rem;
+			gap: .5rem;
 			justify-content: start;
 		}
 
