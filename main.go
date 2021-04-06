@@ -66,16 +66,16 @@ func NewDashboardConnHandler(srv *CaptureService, cfg Config) http.HandlerFunc {
 		w.Header().Set("Cache-Control", "no-cache")
 		w.Header().Set("Connection", "keep-alive")
 
-		// Send the config.
-		jsn, _ := json.Marshal(cfg)
-		fmt.Fprintf(w, "event: config\ndata: %s\n\n", jsn)
-		w.(http.Flusher).Flush()
-
-		// Send the captures.
-		for {
-			jsn, _ := json.Marshal(srv.DashboardItems())
-			fmt.Fprintf(w, "event: captures\ndata: %s\n\n", jsn)
+		sendEvent := func(event string, data interface{}) {
+			jsn, _ := json.Marshal(data)
+			fmt.Fprintf(w, "event: %s\ndata: %s\n\n", event, jsn)
 			w.(http.Flusher).Flush()
+		}
+
+		sendEvent("config", cfg)
+
+		for {
+			sendEvent("captures", srv.DashboardItems())
 
 			select {
 			case <-srv.Updated():
