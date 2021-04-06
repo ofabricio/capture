@@ -21,7 +21,7 @@ import (
 	"time"
 )
 
-// StatusInternalProxyError is any unknown proxy error
+// StatusInternalProxyError is any unknown proxy error.
 const StatusInternalProxyError = 999
 
 //go:embed dashboard.html
@@ -55,7 +55,7 @@ func NewDashboardHandler(h http.HandlerFunc, srv *CaptureService, cfg Config) ht
 }
 
 // NewDashboardConnHandler opens an event stream connection with the dashboard
-// so that it is notified everytime a new capture arrives
+// so that it is notified everytime a new capture arrives.
 func NewDashboardConnHandler(srv *CaptureService, cfg Config) http.HandlerFunc {
 	return func(w http.ResponseWriter, req *http.Request) {
 		if _, ok := w.(http.Flusher); !ok {
@@ -86,7 +86,7 @@ func NewDashboardConnHandler(srv *CaptureService, cfg Config) http.HandlerFunc {
 	}
 }
 
-// NewDashboardClearHandler clears all the captures
+// NewDashboardClearHandler clears all the captures.
 func NewDashboardClearHandler(srv *CaptureService) http.HandlerFunc {
 	return func(rw http.ResponseWriter, req *http.Request) {
 		srv.RemoveAll()
@@ -94,7 +94,7 @@ func NewDashboardClearHandler(srv *CaptureService) http.HandlerFunc {
 	}
 }
 
-// NewDashboardHTMLHandler returns the dashboard html page
+// NewDashboardHTMLHandler returns the dashboard html page.
 func NewDashboardHTMLHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, req *http.Request) {
 
@@ -111,13 +111,13 @@ func NewDashboardHTMLHandler() http.HandlerFunc {
 	}
 }
 
-// NewDashboardRetryHandler retries a request
+// NewDashboardRetryHandler retries a request.
 func NewDashboardRetryHandler(srv *CaptureService, next http.HandlerFunc) http.HandlerFunc {
 	return func(rw http.ResponseWriter, req *http.Request) {
 		id := path.Base(req.URL.Path)
 		capture := srv.Find(id)
 
-		// creates a new request based on the current one
+		// Create a new request based on the current one.
 		r, _ := http.NewRequest(capture.Req.Method, capture.Req.Url, bytes.NewReader(capture.Req.Body))
 		r.Header = capture.Req.Header
 
@@ -125,7 +125,7 @@ func NewDashboardRetryHandler(srv *CaptureService, next http.HandlerFunc) http.H
 	}
 }
 
-// NewDashboardInfoHandler returns the full capture info
+// NewDashboardInfoHandler returns the full capture info.
 func NewDashboardInfoHandler(srv *CaptureService) http.HandlerFunc {
 	return func(rw http.ResponseWriter, req *http.Request) {
 		id := path.Base(req.URL.Path)
@@ -135,7 +135,8 @@ func NewDashboardInfoHandler(srv *CaptureService) http.HandlerFunc {
 	}
 }
 
-// NewPluginHandler loads plugin files in the current directory. They are loaded sorted by filename.
+// NewPluginHandler loads plugin files in the current directory.
+// They are loaded sorted by filename.
 func NewPluginHandler(next http.HandlerFunc) http.HandlerFunc {
 	ex, err := os.Executable()
 	if err != nil {
@@ -175,7 +176,7 @@ func NewPluginHandler(next http.HandlerFunc) http.HandlerFunc {
 	return next
 }
 
-// NewRecorderHandler records all the traffic data
+// NewRecorderHandler records all the traffic data.
 func NewRecorderHandler(srv *CaptureService, next http.HandlerFunc) http.HandlerFunc {
 	return func(rw http.ResponseWriter, r *http.Request) {
 
@@ -225,7 +226,7 @@ func NewRecorderHandler(srv *CaptureService, next http.HandlerFunc) http.Handler
 	}
 }
 
-// NewProxyHandler is the reverse proxy handler
+// NewProxyHandler is the reverse proxy handler.
 func NewProxyHandler(URL string) http.HandlerFunc {
 	url, _ := url.Parse(URL)
 	proxy := httputil.NewSingleHostReverseProxy(url)
@@ -283,13 +284,13 @@ func dumpBody(dst *strings.Builder, header http.Header, body []byte) {
 
 func dumpCurl(req Req) string {
 	var b strings.Builder
-	// build cmd
+	// Build cmd.
 	fmt.Fprintf(&b, "curl -X %s %s", req.Method, req.Url)
-	// build headers
+	// Build headers.
 	for k, v := range req.Header {
 		fmt.Fprintf(&b, " \\\n  -H '%s: %s'", k, strings.Join(v, " "))
 	}
-	// build body
+	// Build body.
 	if len(req.Body) > 0 {
 		fmt.Fprintf(&b, " \\\n  -d '%s'", req.Body)
 	}

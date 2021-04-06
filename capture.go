@@ -9,20 +9,20 @@ import (
 
 var captureID int
 
-// CaptureService handles captures
+// CaptureService handles captures.
 type CaptureService struct {
 	items    []Capture
 	mu       sync.RWMutex
 	maxItems int
-	updated  chan struct{} // signals any change in "items"
+	updated  chan struct{} // signals any change in "items".
 }
 
-// Capture is our traffic data
+// Capture is our traffic data.
 type Capture struct {
 	ID  int
 	Req Req
 	Res Res
-	// Elapsed time of the request, in milliseconds
+	// Elapsed time of the request, in milliseconds.
 	Elapsed time.Duration
 }
 
@@ -43,14 +43,14 @@ type Res struct {
 	Body   []byte
 }
 
-// CaptureInfo is the capture info shown in the dashboard
+// CaptureInfo is the capture info shown in the dashboard.
 type CaptureInfo struct {
 	Request  string `json:"request"`
 	Response string `json:"response"`
 	Curl     string `json:"curl"`
 }
 
-// DashboardItem is an item in the dashboard's list
+// DashboardItem is an item in the dashboard's list.
 type DashboardItem struct {
 	ID     int    `json:"id"`
 	Path   string `json:"path"`
@@ -60,7 +60,7 @@ type DashboardItem struct {
 	Elapsed time.Duration `json:"elapsed"`
 }
 
-// NewCaptureService creates a new service of captures
+// NewCaptureService creates a new service of captures.
 func NewCaptureService(maxItems int) *CaptureService {
 	return &CaptureService{
 		maxItems: maxItems,
@@ -68,7 +68,7 @@ func NewCaptureService(maxItems int) *CaptureService {
 	}
 }
 
-// Insert inserts a new capture
+// Insert inserts a new capture.
 func (s *CaptureService) Insert(capture Capture) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -82,7 +82,7 @@ func (s *CaptureService) Insert(capture Capture) {
 	s.signalsUpdate()
 }
 
-// Find finds a capture by its id
+// Find finds a capture by its ID.
 func (s *CaptureService) Find(captureID string) *Capture {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
@@ -96,7 +96,7 @@ func (s *CaptureService) Find(captureID string) *Capture {
 	return nil
 }
 
-// RemoveAll removes all the captures
+// RemoveAll removes all the captures.
 func (s *CaptureService) RemoveAll() {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -105,7 +105,7 @@ func (s *CaptureService) RemoveAll() {
 	s.signalsUpdate()
 }
 
-// DashboardItems returns the dashboard's list of items
+// DashboardItems returns the dashboard's list of items.
 func (s *CaptureService) DashboardItems() []DashboardItem {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
@@ -123,14 +123,14 @@ func (s *CaptureService) DashboardItems() []DashboardItem {
 	return metadatas
 }
 
-// signalsUpdate fires an update signal
+// signalsUpdate fires an update signal.
 func (s *CaptureService) signalsUpdate() {
 	close(s.updated)
 	s.updated = make(chan struct{})
 }
 
 // Updated signals any change in this service,
-// like inserting or removing captures
+// like inserting or removing captures.
 func (s *CaptureService) Updated() <-chan struct{} {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
