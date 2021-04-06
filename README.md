@@ -35,7 +35,7 @@ To access the dashboard go to `http://localhost:9001/`
 
 ##### Preview
 
-![dashboard](https://i.imgur.com/5pbLRRY.png)
+![dashboard](https://i.imgur.com/4yOSWFn.png)
 
 
 ## Building
