@@ -344,8 +344,8 @@
 		</div>
 
 		<div class="welcome" v-show="items.length == 0">
-			<p>Waiting for requests on http://localhost:{{{.ProxyPort}}}/<br>
-				<span>Proxying {{{.TargetURL}}}</span>
+			<p>Waiting for requests on http://localhost:{{proxyPort}}/<br>
+				<span>Proxying {{targetURL}}</span>
 			</p>
 		</div>
 
@@ -357,13 +357,20 @@
 			data: {
 				items: [],
 				selectedItem: {},
+				proxyPort: '',
+				targetURL: '',
 			},
 			created() {
 				this.setupStream();
 			},
 			methods: {
 				setupStream() {
-					let es = new EventSource(window.location.href + 'conn/');
+					let es = new EventSource('/conn/');
+					es.addEventListener('config', event => {
+						const cfg = JSON.parse(event.data);
+						this.proxyPort = cfg.ProxyPort;
+						this.targetURL = cfg.TargetURL;
+					});
 					es.addEventListener('captures', event => {
 						this.items = JSON.parse(event.data).reverse();
 					});
@@ -374,7 +381,7 @@
 				},
 				async show(item) {
 					this.selectedItem = { ...this.selectedItem, id: item.id, status: item.status };
-					let resp = await fetch(window.location.href + 'info/' + item.id);
+					let resp = await fetch('/info/' + item.id);
 					let data = await resp.json();
 					this.selectedItem = { ...this.selectedItem, ...data };
 				},
@@ -385,7 +392,7 @@
 				},
 				async clearDashboard() {
 					this.selectedItem = {};
-					await fetch(window.location.href + 'clear/');
+					await fetch('/clear/');
 				},
 				canPrettifyBody(name) {
 					if (!this.selectedItem[name]) return false;
@@ -409,7 +416,7 @@
 					document.body.removeChild(e);
 				},
 				async retry() {
-					await fetch(window.location.href + 'retry/' + this.selectedItem.id,
+					await fetch('/retry/' + this.selectedItem.id,
 						{ headers: { 'Cache-Control': 'no-cache' } });
 					this.show(this.items[0]);
 				},

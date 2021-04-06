@@ -6,7 +6,6 @@ import (
 	_ "embed"
 	"encoding/json"
 	"fmt"
-	"html/template"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -26,7 +25,7 @@ import (
 const StatusInternalProxyError = 999
 
 //go:embed dashboard.html
-var dashboardHTML string
+var dashboardHTML []byte
 
 func main() {
 	cfg := ReadConfig()
@@ -45,10 +44,10 @@ func main() {
 	fmt.Println(http.ListenAndServe(":"+cfg.ProxyPort, hdr))
 }
 
-func NewDashboardHandler(h http.HandlerFunc, srv *CaptureService, config Config) http.Handler {
+func NewDashboardHandler(h http.HandlerFunc, srv *CaptureService, cfg Config) http.Handler {
 	router := http.NewServeMux()
-	router.HandleFunc("/", NewDashboardHTMLHandler(config))
-	router.HandleFunc("/conn/", NewDashboardConnHandler(srv))
+	router.HandleFunc("/", NewDashboardHTMLHandler())
+	router.HandleFunc("/conn/", NewDashboardConnHandler(srv, cfg))
 	router.HandleFunc("/info/", NewDashboardInfoHandler(srv))
 	router.HandleFunc("/clear/", NewDashboardClearHandler(srv))
 	router.HandleFunc("/retry/", NewDashboardRetryHandler(srv, h))
@@ -57,19 +56,26 @@ func NewDashboardHandler(h http.HandlerFunc, srv *CaptureService, config Config)
 
 // NewDashboardConnHandler opens an event stream connection with the dashboard
 // so that it is notified everytime a new capture arrives
-func NewDashboardConnHandler(srv *CaptureService) http.HandlerFunc {
-	return func(rw http.ResponseWriter, req *http.Request) {
-		if _, ok := rw.(http.Flusher); !ok {
-			fmt.Printf("streaming not supported at %s\n", req.URL)
-			http.Error(rw, "streaming not supported", http.StatusInternalServerError)
+func NewDashboardConnHandler(srv *CaptureService, cfg Config) http.HandlerFunc {
+	return func(w http.ResponseWriter, req *http.Request) {
+		if _, ok := w.(http.Flusher); !ok {
+			http.Error(w, "streaming not supported", http.StatusInternalServerError)
 			return
 		}
-		rw.Header().Set("Content-Type", "text/event-stream")
-		rw.Header().Set("Cache-Control", "no-cache")
+		w.Header().Set("Content-Type", "text/event-stream")
+		w.Header().Set("Cache-Control", "no-cache")
+		w.Header().Set("Connection", "keep-alive")
+
+		// Send the config.
+		jsn, _ := json.Marshal(cfg)
+		fmt.Fprintf(w, "event: config\ndata: %s\n\n", jsn)
+		w.(http.Flusher).Flush()
+
+		// Send the captures.
 		for {
 			jsn, _ := json.Marshal(srv.DashboardItems())
-			fmt.Fprintf(rw, "event: captures\ndata: %s\n\n", jsn)
-			rw.(http.Flusher).Flush()
+			fmt.Fprintf(w, "event: captures\ndata: %s\n\n", jsn)
+			w.(http.Flusher).Flush()
 
 			select {
 			case <-srv.Updated():
@@ -89,26 +95,19 @@ func NewDashboardClearHandler(srv *CaptureService) http.HandlerFunc {
 }
 
 // NewDashboardHTMLHandler returns the dashboard html page
-func NewDashboardHTMLHandler(config Config) http.HandlerFunc {
-	return func(rw http.ResponseWriter, req *http.Request) {
+func NewDashboardHTMLHandler() http.HandlerFunc {
+	return func(w http.ResponseWriter, req *http.Request) {
 
 		// This redirect prevents accessing the dashboard page from paths other
 		// than the root path. This is important because the dashboard uses
 		// relative paths, so "/retry/" would become "/something/retry/".
 		if req.URL.Path != "/" {
-			http.Redirect(rw, req, "/", http.StatusTemporaryRedirect)
+			http.Redirect(w, req, "/", http.StatusTemporaryRedirect)
 			return
 		}
 
-		rw.Header().Add("Content-Type", "text/html")
-		t, err := template.New("dashboard template").Delims("{{{", "}}}").Parse(dashboardHTML)
-		if err != nil {
-			msg := fmt.Sprintf("could not parse dashboard html template: %v", err)
-			fmt.Println(msg)
-			http.Error(rw, msg, http.StatusInternalServerError)
-			return
-		}
-		t.Execute(rw, config)
+		w.Header().Add("Content-Type", "text/html")
+		w.Write(dashboardHTML)
 	}
 }
 

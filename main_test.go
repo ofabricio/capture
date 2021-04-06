@@ -91,7 +91,7 @@ func TestDashboardRedirect(t *testing.T) {
 	rec := httptest.NewRecorder()
 
 	// When.
-	NewDashboardHTMLHandler(Config{}).ServeHTTP(rec, req)
+	NewDashboardHTMLHandler().ServeHTTP(rec, req)
 
 	// Then.
 	if rec.Code != http.StatusTemporaryRedirect {
@@ -102,7 +102,7 @@ func TestDashboardRedirect(t *testing.T) {
 	}
 }
 
-func ExampleDump() {
+func Example_dump() {
 	c := &Capture{
 		Req: Req{
 			Proto:  "HTTP/1.1",
