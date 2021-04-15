@@ -54,7 +54,7 @@ Via docker:
 
 Now you have an executable binary in your directory.
 
-**Note:** change `GOOS=darwin` to `linux` or `windows` to create an executable for your corresponding Operating System.
+**Note:** change `GOOS=darwin` to `linux` or `windows` to create an executable for your corresponding Operating System. For linux, is also needed to change the image tag as well: `golang:1.16`.
 
 ## Plugins
 
