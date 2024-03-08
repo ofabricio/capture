@@ -8,17 +8,17 @@ proxying the response back to the client, while showing them in a dashboard.
 
 ## Running
 
-    ./capture -url=https://example.com/
-
+```sh
+./capture -url=https://example.com/
+```
 
 #### Settings
 
 | param        | description |
 |--------------|-------------|
-| `-url`       | **Required.** Set the url you want to proxy |
+| `-url`       | **Required.** Set the url to proxy |
 | `-port`      | Set the proxy port. Default: *9000* |
 | `-dashboard` | Set the dashboard port. Default: *9001* |
-| `-captures`  | Set how many captures to show in the dashboard. Default: *16* |
 
 
 ## Using
@@ -40,33 +40,30 @@ To access the dashboard go to `http://localhost:9001/`
 
 ## Building
 
-Manually:
+### For manual build
 
-    git clone --depth 1 https://github.com/ofabricio/capture.git
-    cd capture
-    go build
+```sh
+git clone --depth 1 https://github.com/ofabricio/capture.git
+cd capture
+go build
+```
 
-Via docker:
+### For building with docker
 
-    git clone --depth 1 https://github.com/ofabricio/capture.git
-    cd capture
-    docker run --rm -v $PWD:/src -w /src -e GOOS=darwin -e GOARCH=amd64 golang:alpine go build
+```sh
+git clone --depth 1 https://github.com/ofabricio/capture.git
+cd capture
+docker run --rm -v $PWD:/src -w /src -e GOOS=darwin -e GOARCH=amd64 golang:alpine go build
+```
 
 Now you have an executable binary in your directory.
 
-**Note:** change `GOOS=darwin` to `linux` or `windows` to create an executable for your corresponding Operating System.
+**Note:** set `GOOS=darwin` to `linux` or `windows` to create an executable for the corresponding Operating System.
 
-## Plugins
+### For running straight from docker
 
-Put [plugin](https://golang.org/pkg/plugin/) files in the current directory.
-They are loaded sorted by filename on startup.
-
-Plugins must export the following function:
-
-```go
-func Handler(proxy http.HandlerFunc) http.HandlerFunc {
-    return func(w http.ResponseWriter, r *http.Request) {
-        proxy(w, r)
-    }
-}
+```sh
+git clone --depth 1 https://github.com/ofabricio/capture.git
+cd capture
+docker run --rm -v $PWD:/src -w /src golang:alpine apk add ca-certificates && go run main.go -url=http://example.com
 ```

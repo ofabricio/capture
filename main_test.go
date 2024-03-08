@@ -1,150 +1,63 @@
 package main
 
 import (
-	"bytes"
 	"compress/gzip"
 	"fmt"
-	"io"
-	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
-	"strings"
-	"testing"
+	"net/url"
 )
 
-// Test the reverse proxy handler
-func TestProxyHandler(t *testing.T) {
-	// given
-	tt := []TestCase{
-		GetRequest(),
-		PostRequest(),
-	}
-	for _, tc := range tt {
-		t.Run(tc.name, func(t *testing.T) {
-			service := httptest.NewServer(http.HandlerFunc(tc.service))
-			capture := httptest.NewServer(NewProxyHandler(service.URL))
+func Example() {
 
-			// when
-			resp := tc.request(capture.URL)
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Date", "Sun, 10 Mar 2024 01:05:03 GMT")
+		if r.URL.Path == "/say" {
+			w.Write([]byte("Lorem ipsum dolor sit amet, consectetur adipiscing elit."))
+		}
+		if r.URL.Path == "/say/gzip" {
+			w.Header().Set("Content-Encoding", "gzip")
+			g := gzip.NewWriter(w)
+			g.Write([]byte("Lorem ipsum dolor sit amet, consectetur adipiscing elit."))
+			g.Close()
+		}
+	}))
 
-			// then
-			tc.test(t, resp)
+	u, _ := url.Parse(srv.URL)
 
-			resp.Body.Close()
-			capture.Close()
-			service.Close()
-		})
-	}
-}
+	captures := make(chan Capture)
 
-type TestCase struct {
-	name    string
-	request func(string) *http.Response
-	service func(http.ResponseWriter, *http.Request)
-	test    func(*testing.T, *http.Response)
-}
+	proxy, _ := NewProxy(u, captures)
 
-func GetRequest() TestCase {
-	msg := "hello"
-	return TestCase{
-		name: "GetRequest",
-		request: func(url string) *http.Response {
-			res, _ := http.Get(url)
-			return res
-		},
-		service: func(rw http.ResponseWriter, req *http.Request) {
-			fmt.Fprint(rw, string(msg))
-		},
-		test: func(t *testing.T, res *http.Response) {
-			body, _ := ioutil.ReadAll(res.Body)
-			if string(body) != msg {
-				t.Error("Wrong Body Response")
-			}
-		},
-	}
-}
+	// Test regular response.
 
-func PostRequest() TestCase {
-	msg := "hello"
-	return TestCase{
-		name: "PostRequest",
-		request: func(url string) *http.Response {
-			res, _ := http.Post(url, "text/plain", strings.NewReader(msg))
-			return res
-		},
-		service: func(rw http.ResponseWriter, req *http.Request) {
-			io.Copy(rw, req.Body)
-		},
-		test: func(t *testing.T, res *http.Response) {
-			body, _ := ioutil.ReadAll(res.Body)
-			if string(body) != msg {
-				t.Error("Wrong Body Response")
-			}
-		},
-	}
-}
-
-func TestDashboardRedirect(t *testing.T) {
-
-	// Given.
-	req, _ := http.NewRequest(http.MethodGet, "/something/", nil)
 	rec := httptest.NewRecorder()
+	req := httptest.NewRequest("GET", "/say", nil)
 
-	// When.
-	NewDashboardHTMLHandler().ServeHTTP(rec, req)
+	go proxy(rec, req)
+	c := <-captures
 
-	// Then.
-	if rec.Code != http.StatusTemporaryRedirect {
-		t.Errorf("Wrong response code: got %d, want %d", rec.Code, http.StatusTemporaryRedirect)
-	}
-	if loc := rec.Header().Get("Location"); loc != "/" {
-		t.Errorf("Wrong redirect path: got '%s', want '/'", loc)
-	}
-}
+	fmt.Println("Test regular response")
+	fmt.Println(rec.Code == 200, rec.Body.String() == "Lorem ipsum dolor sit amet, consectetur adipiscing elit.")
+	fmt.Println(c.Res == "HTTP/1.1 200 OK\r\nContent-Length: 56\r\nContent-Type: text/plain; charset=utf-8\r\nDate: Sun, 10 Mar 2024 01:05:03 GMT\r\n\r\nLorem ipsum dolor sit amet, consectetur adipiscing elit.")
 
-func Example_dump() {
-	c := &Capture{
-		Req: Req{
-			Proto:  "HTTP/1.1",
-			Url:    "http://localhost/hello",
-			Path:   "/hello",
-			Method: "GET",
-			Header: map[string][]string{"Content-Encoding": {"none"}},
-			Body:   []byte(`hello`),
-		},
-		Res: Res{
-			Proto:  "HTTP/1.1",
-			Header: map[string][]string{"Content-Encoding": {"gzip"}},
-			Body:   gzipStr("gziped hello"),
-			Status: "200 OK",
-		},
-	}
-	got := dump(c)
+	// Test gzip response.
 
-	fmt.Println(got.Request)
-	fmt.Println(got.Response)
-	fmt.Println(got.Curl)
+	rec = httptest.NewRecorder()
+	req = httptest.NewRequest("GET", "/say/gzip", nil)
+
+	go proxy(rec, req)
+	c = <-captures
+
+	fmt.Println("Test gzip response")
+	fmt.Println(rec.Code == 200, rec.Body.String() == "Lorem ipsum dolor sit amet, consectetur adipiscing elit.")
+	fmt.Println(c.Res == "HTTP/1.1 200 OK\r\nConnection: close\r\nDate: Sun, 10 Mar 2024 01:05:03 GMT\r\n\r\nLorem ipsum dolor sit amet, consectetur adipiscing elit.")
 
 	// Output:
-	// GET /hello HTTP/1.1
-	//
-	// Content-Encoding: none
-	//
-	// hello
-	// HTTP/1.1 200 OK
-	//
-	// Content-Encoding: gzip
-	//
-	// gziped hello
-	// curl -X GET http://localhost/hello \
-	//   -H 'Content-Encoding: none' \
-	//   -d 'hello'
-}
-
-func gzipStr(str string) []byte {
-	var buff bytes.Buffer
-	g := gzip.NewWriter(&buff)
-	io.WriteString(g, str)
-	g.Close()
-	return buff.Bytes()
+	// Test regular response
+	// true true
+	// true
+	// Test gzip response
+	// true true
+	// true
 }
